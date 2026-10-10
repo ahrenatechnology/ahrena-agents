@@ -16,7 +16,8 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
   const options: Options = {
     plugins: [{ type: "local", path: QUALITY_PLUGIN }],
     agent: "argos",
-    permissionMode: "bypassPermissions",
+    permissionMode: "dontAsk",
+    allowedTools: ["Read", "Grep", "Glob"],
     cwd: opts.cwd,
   };
 
