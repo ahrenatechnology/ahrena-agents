@@ -11,8 +11,16 @@ export function intake(state: ReviewStateT): Partial<ReviewStateT> {
   if (!state.changed) {
     return { summary: `PR #${state.pr}: sem range (--changed), roteamento pulado`, skills: [] };
   }
-  const { skills } = routeReview({ changed: state.changed, cwd: process.cwd() });
-  return { summary: `PR #${state.pr}: ${skills.length} skill(s) roteada(s)`, skills };
+  try {
+    const { skills } = routeReview({ changed: state.changed, cwd: process.cwd() });
+    return { summary: `PR #${state.pr}: ${skills.length} skill(s) roteada(s)`, skills };
+  } catch (error) {
+    const reason = (error instanceof Error ? error.message : String(error)).split("\n")[0];
+    return {
+      summary: `PR #${state.pr}: roteamento prévio falhou (${reason}); o Argos roteia internamente`,
+      skills: [],
+    };
+  }
 }
 
 /**
