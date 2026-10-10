@@ -18,7 +18,21 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
     plugins: [{ type: "local", path: QUALITY_PLUGIN }],
     agent: "argos",
     permissionMode: "dontAsk",
-    allowedTools: ["Read", "Grep", "Glob"],
+    // Leitura + análise read-only: deixa o Argos rodar os gates do framework
+    // (route-review.py em python3, tsc) e ler o git. Nada de write/merge:
+    // sem git push, sem gh, sem Bash genérico.
+    allowedTools: [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git log:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git status:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)",
+    ],
     cwd: opts.cwd,
   };
 
