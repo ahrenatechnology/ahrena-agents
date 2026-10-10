@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
-import { buildGraph } from "./graph";
-import { renderPreview } from "./preview";
-import type { ReviewStateT } from "./state";
+import { buildGraph } from "./code-review/graph";
+import { renderPreview } from "./code-review/preview";
+import type { ReviewStateT } from "./code-review/state";
 
 // Carrega CLAUDE_CODE_OAUTH_TOKEN (e afins) de um .env local, se houver.
 try {

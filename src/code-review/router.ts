@@ -1,17 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { ROUTE_REVIEW_HOOK } from "../shared/paths";
 
 export interface RouteResult {
   /** Skills que a mudança selecionou (o que o intake consome). */
   skills: string[];
 }
-
-const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const HOOK = join(
-  PROJECT_ROOT,
-  "ahrena/ahrena-framework/engineering/quality/hooks/route-review.py",
-);
 
 /**
  * Roda o roteador do ahrena-framework (route-review.py) sobre um range e
@@ -21,7 +14,7 @@ const HOOK = join(
 export function routeReview(opts: { changed: string; cwd: string }): RouteResult {
   let stdout: string;
   try {
-    stdout = execFileSync("python3", [HOOK, "--changed", opts.changed, "--json"], {
+    stdout = execFileSync("python3", [ROUTE_REVIEW_HOOK, "--changed", opts.changed, "--json"], {
       cwd: opts.cwd,
       encoding: "utf8",
     });

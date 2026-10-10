@@ -9,8 +9,7 @@ export interface Progress {
 
 /**
  * Indicador de progresso em uma linha, atualizada no lugar (sem rolar o
- * terminal). Fora de um TTY (CI/log), imprime uma linha única e não anima —
- * nada de frames poluindo o log.
+ * terminal). Fora de um TTY (CI/log), imprime uma linha única e não anima.
  */
 export function spinner(initial: string): Progress {
   const start = Date.now();

@@ -1,6 +1,9 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 import { ReviewState, type ReviewStateT } from "./state";
-import { intake, argos, erodos, decisor } from "./nodes";
+import { intake } from "./nodes/intake";
+import { argos } from "./nodes/argos";
+import { erodos } from "./nodes/erodos";
+import { decisor } from "./nodes/decisor";
 
 /**
  * Roteia pelo verdict do Argos:

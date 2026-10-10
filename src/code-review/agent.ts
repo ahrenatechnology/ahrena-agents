@@ -1,17 +1,11 @@
 import { query, type Options } from "@anthropic-ai/claude-agent-sdk";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import { spinner } from "./progress";
-
-const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-/** O plugin `quality` do framework: traz o agente `argos` + suas skills + hooks. */
-const QUALITY_PLUGIN = join(PROJECT_ROOT, "ahrena/ahrena-framework/engineering/quality");
+import { spinner } from "../shared/progress";
+import { QUALITY_PLUGIN } from "../shared/paths";
 
 /**
  * Invoca o agente `argos` REAL do ahrena-framework, carregado como plugin
  * local, e devolve o texto que ele produz. Mesmo prompt e skills do dev —
- * zero cópia (o prompt vem do próprio argos.md via plugin). A autenticação é
- * a do Claude Code já logado (ou CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY).
+ * zero cópia (o prompt vem do próprio argos.md via plugin).
  */
 export async function runArgos(opts: { cwd: string; prompt: string }): Promise<string> {
   const controller = new AbortController();
@@ -33,7 +27,6 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
 
   const chunks: string[] = [];
   const problems: string[] = [];
-  // Progresso enxuto no stderr (spinner); o texto da revisão fica só no retorno.
   const progress = spinner("Argos pensando…");
   let actions = 0;
   try {

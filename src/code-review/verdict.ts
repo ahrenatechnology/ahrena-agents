@@ -5,8 +5,8 @@ const LINE = /^\s*\**\s*(?:verdict|veredito)\s*\**\s*[:\-]\s*`?\**\s*(approve|re
 /**
  * Extrai o verdict do texto do Argos pelo marcador de LINHA ("Verdict: X" /
  * "Veredito: X"), ancorado no início da linha e pegando o ÚLTIMO match — a
- * linha de decisão final vence menções em prosa (ex.: "não dá para aprovar").
- * Sem marcador, cai no conservador "comment".
+ * linha de decisão final vence menções em prosa. Sem marcador, cai no
+ * conservador "comment".
  */
 export function parseVerdict(text: string): Verdict {
   let verdict: Verdict = "comment";
