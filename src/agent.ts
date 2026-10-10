@@ -15,7 +15,7 @@ const QUALITY_PLUGIN = join(PROJECT_ROOT, "ahrena/ahrena-framework/engineering/q
  */
 export async function runArgos(opts: { cwd: string; prompt: string }): Promise<string> {
   const controller = new AbortController();
-  const TIMEOUT_S = 180;
+  const TIMEOUT_S = 600;
   const timer = setTimeout(() => controller.abort(), TIMEOUT_S * 1000);
 
   // Herda o ambiente e desliga pagers interativos (git) que travariam o agente.
