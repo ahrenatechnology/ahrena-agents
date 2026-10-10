@@ -1,0 +1,23 @@
+name: "Ahrena Code Review"
+description: "Argos revisa um pull request contra as regras de engenharia da Ahrena (read-only)."
+author: "Ahrena"
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  claude-token:
+    description: "Token do Claude Code (claude setup-token) ou ANTHROPIC_API_KEY."
+    required: true
+
+runs:
+  using: "docker"
+  image: "docker://ghcr.io/ahrenatechnology/code-review:v1"
+  env:
+    CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude-token }}
+    GH_TOKEN: ${{ github.token }}
+  args:
+    - "--pr"
+    - ${{ github.event.pull_request.number }}
+    - "--changed"
+    - "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
