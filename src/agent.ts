@@ -22,13 +22,21 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
   };
 
   const chunks: string[] = [];
+  const problems: string[] = [];
   for await (const message of query({ prompt: opts.prompt, options })) {
     if (message.type === "assistant") {
-      if (message.error) throw new Error(message.error);
+      if (message.error) problems.push(`assistant: ${message.error}`);
       for (const block of message.message.content) {
         if (block.type === "text") chunks.push(block.text);
       }
+    } else if (message.type === "result" && message.subtype !== "success") {
+      const detail = message.errors.length ? message.errors.join(" | ") : message.subtype;
+      const denied = message.permission_denials.length;
+      problems.push(`result ${message.subtype}: ${detail}${denied ? ` [${denied} permissão(ões) negada(s)]` : ""}`);
     }
   }
-  return chunks.join("");
+
+  const text = chunks.join("");
+  if (!text && problems.length) throw new Error(problems.join(" ;; "));
+  return text;
 }
