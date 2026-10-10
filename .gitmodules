@@ -1,3 +1,3 @@
 [submodule "vendor/ahrena-framework"]
-	path = vendor/ahrena-framework
+	path = ahrena/ahrena-framework
 	url = https://github.com/ahrenatechnology/ahrena-framework.git
