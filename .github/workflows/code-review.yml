@@ -1,0 +1,38 @@
+name: Code Review (Ahrena)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write # para comentar o verdict (passo futuro)
+
+concurrency:
+  group: ahrena-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive # traz o ahrena-framework (submodule pinado)
+          fetch-depth: 0 # histórico para o diff base...head
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instala dependências
+        run: npm ci
+
+      - name: Argos revisa o PR
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npx tsx src/cli.ts \
+            --pr "${{ github.event.pull_request.number }}" \
+            --changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
