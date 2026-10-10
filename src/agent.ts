@@ -18,36 +18,16 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
   const TIMEOUT_S = 600;
   const timer = setTimeout(() => controller.abort(), TIMEOUT_S * 1000);
 
-  // Herda o ambiente e desliga pagers interativos (git) que travariam o agente.
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (value !== undefined) env[key] = value;
-  }
-  env.GIT_PAGER = "cat";
-  env.PAGER = "cat";
-
   const options: Options = {
     plugins: [{ type: "local", path: QUALITY_PLUGIN }],
     agent: "argos",
     permissionMode: "dontAsk",
-    // Leitura + análise read-only: deixa o Argos rodar os gates do framework
-    // (route-review.py em python3, tsc) e ler o git. Nada de write/merge:
-    // sem git push, sem gh, sem Bash genérico.
-    allowedTools: [
-      "Read",
-      "Grep",
-      "Glob",
-      "Bash(git diff:*)",
-      "Bash(git show:*)",
-      "Bash(git log:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(git status:*)",
-      "Bash(python3:*)",
-      "Bash(npx tsc:*)",
-    ],
+    // Read-only confiável: SEM Bash. O Bash fazia o agente pendurar em comandos
+    // que bloqueiam. As condições de script ficam `unchecked` (semântica do
+    // ADR-002). Decidir os gates fica para o orquestrador rodá-los e alimentar.
+    allowedTools: ["Read", "Grep", "Glob"],
     abortController: controller,
     maxTurns: 100,
-    env,
     cwd: opts.cwd,
   };
 
