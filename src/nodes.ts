@@ -1,6 +1,6 @@
 import type { ReviewStateT } from "./state";
 import { routeReview } from "./router";
-import { hasClaudeAuth, runArgos } from "./agent";
+import { runArgos } from "./agent";
 
 /**
  * Ponto de entrada: roteia a mudança com o route-review.py do framework e
@@ -15,23 +15,21 @@ export function intake(state: ReviewStateT): Partial<ReviewStateT> {
 }
 
 /**
- * Nó do Argos: invoca o agente real do framework quando há credencial;
- * sem token, degrada para um resumo do que seria revisado.
+ * Nó do Argos: tenta invocar o agente real do framework. Se a credencial ou o
+ * agente não estiverem disponíveis, devolve o motivo numa linha — sem quebrar.
  * TODO: extrair o verdict do output/plataforma em vez de fixar "comment".
  */
 export async function argos(state: ReviewStateT): Promise<Partial<ReviewStateT>> {
   const skills = state.skills ?? [];
-
-  if (!hasClaudeAuth()) {
+  try {
+    const prompt = `Revise o PR #${state.pr} (mudança: ${state.changed ?? "não informada"}).`;
+    const text = await runArgos({ cwd: process.cwd(), prompt });
+    return { verdict: "comment", summary: text || "(Argos não devolveu texto)" };
+  } catch (error) {
+    const reason = (error instanceof Error ? error.message : String(error)).split("\n")[0];
     return {
       verdict: "comment",
-      summary: skills.length
-        ? `Argos (stub, sem token) revisaria com: ${skills.join(", ")}`
-        : `Argos (stub) — nada roteado para o PR #${state.pr}`,
+      summary: `Argos não rodou: ${reason}. Skills roteadas: ${skills.join(", ") || "nenhuma"}`,
     };
   }
-
-  const prompt = `Revise o PR #${state.pr} (mudança: ${state.changed ?? "não informada"}).`;
-  const text = await runArgos({ cwd: process.cwd(), prompt });
-  return { verdict: "comment", summary: text };
 }
