@@ -1,17 +1,19 @@
 import type { Verdict } from "./state";
 
-const EXPLICIT = /(?:verdict|veredito)[:\s*`]*\s*(approve|request[_ ]changes|comment)/i;
+const LINE = /^\s*\**\s*(?:verdict|veredito)\s*\**\s*[:\-]\s*`?\**\s*(approve|request[ _]changes|comment)/gim;
 
 /**
- * Extrai o verdict do texto que o Argos produziu. Prefere o marcador explícito
- * ("Verdict: X" / "Veredito: X"); na ausência, cai em "comment" (o mais
- * conservador — não aprova nem pede mudança sem sinal claro).
+ * Extrai o verdict do texto do Argos pelo marcador de LINHA ("Verdict: X" /
+ * "Veredito: X"), ancorado no início da linha e pegando o ÚLTIMO match — a
+ * linha de decisão final vence menções em prosa (ex.: "não dá para aprovar").
+ * Sem marcador, cai no conservador "comment".
  */
 export function parseVerdict(text: string): Verdict {
-  const match = text.match(EXPLICIT);
-  if (!match) return "comment";
-  const found = match[1].toLowerCase().replace(" ", "_");
-  if (found === "approve") return "approve";
-  if (found === "request_changes") return "request_changes";
-  return "comment";
+  let verdict: Verdict = "comment";
+  for (const match of text.matchAll(LINE)) {
+    const found = match[1].toLowerCase().replace(" ", "_");
+    verdict =
+      found === "approve" ? "approve" : found === "request_changes" ? "request_changes" : "comment";
+  }
+  return verdict;
 }

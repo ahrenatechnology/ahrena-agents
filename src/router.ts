@@ -2,19 +2,9 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-export interface RoutedSkill {
-  id: string;
-  skill: string;
-  opens: string[];
-  why: string;
-  on: string[];
-}
-
 export interface RouteResult {
-  routes: RoutedSkill[];
+  /** Skills que a mudança selecionou (o que o intake consome). */
   skills: string[];
-  unrouted: string[];
-  ignored: string[];
 }
 
 const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -39,5 +29,6 @@ export function routeReview(opts: { changed: string; cwd: string }): RouteResult
     const e = error as { status?: number; stderr?: string };
     throw new Error(`route-review falhou (exit ${e.status ?? "?"}): ${(e.stderr ?? "").trim()}`);
   }
-  return JSON.parse(stdout) as RouteResult;
+  const parsed = JSON.parse(stdout) as { skills?: string[] };
+  return { skills: parsed.skills ?? [] };
 }
