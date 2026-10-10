@@ -10,7 +10,9 @@ export function intake(state: ReviewStateT): Partial<ReviewStateT> {
   if (!state.changed) {
     return { summary: `PR #${state.pr}: sem range (--changed), roteamento pulado`, skills: [] };
   }
+  process.stderr.write("▶ roteando a mudança (route-review.py)…\n");
   const { skills } = routeReview({ changed: state.changed, cwd: process.cwd() });
+  process.stderr.write(`  ${skills.length} skill(s): ${skills.join(", ")}\n`);
   return { summary: `PR #${state.pr}: ${skills.length} skill(s) roteada(s)`, skills };
 }
 

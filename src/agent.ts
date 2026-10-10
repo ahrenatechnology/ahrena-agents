@@ -23,11 +23,18 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
 
   const chunks: string[] = [];
   const problems: string[] = [];
+  // Progresso ao vivo vai para stderr; o stdout fica só com o JSON final.
+  process.stderr.write("⟳ Argos revisando…\n");
   for await (const message of query({ prompt: opts.prompt, options })) {
     if (message.type === "assistant") {
       if (message.error) problems.push(`assistant: ${message.error}`);
       for (const block of message.message.content) {
-        if (block.type === "text") chunks.push(block.text);
+        if (block.type === "text") {
+          chunks.push(block.text);
+          process.stderr.write(block.text);
+        } else if (block.type === "tool_use") {
+          process.stderr.write(`\n  · ${block.name}\n`);
+        }
       }
     } else if (message.type === "result" && message.subtype !== "success") {
       const detail = message.errors.length ? message.errors.join(" | ") : message.subtype;
@@ -35,6 +42,7 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
       problems.push(`result ${message.subtype}: ${detail}${denied ? ` [${denied} permissão(ões) negada(s)]` : ""}`);
     }
   }
+  process.stderr.write("\n");
 
   const text = chunks.join("");
   if (!text && problems.length) throw new Error(problems.join(" ;; "));
