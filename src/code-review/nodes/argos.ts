@@ -12,7 +12,7 @@ export async function argos(state: ReviewStateT): Promise<Partial<ReviewStateT>>
   const skills = state.skills ?? [];
   try {
     const prompt = `Revise o PR #${state.pr} (mudança: ${state.changed ?? "não informada"}).`;
-    const text = await runArgos({ cwd: process.cwd(), prompt });
+    const text = await runArgos({ cwd: state.repoPath, prompt });
     return { verdict: parseVerdict(text), summary: text || "(Argos não devolveu texto)" };
   } catch (error) {
     const reason = (error instanceof Error ? error.message : String(error)).split("\n")[0];

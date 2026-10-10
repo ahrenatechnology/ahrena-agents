@@ -15,11 +15,16 @@ async function main(): Promise<void> {
     options: {
       pr: { type: "string" },
       changed: { type: "string" },
+      "repo-path": { type: "string" },
     },
   });
 
   const graph = buildGraph();
-  const input = { pr: values.pr ? Number(values.pr) : 0, changed: values.changed };
+  const input = {
+    pr: values.pr ? Number(values.pr) : 0,
+    changed: values.changed,
+    repoPath: values["repo-path"] ?? process.cwd(),
+  };
 
   // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.
   const final: Partial<ReviewStateT> = { pr: input.pr, changed: input.changed };

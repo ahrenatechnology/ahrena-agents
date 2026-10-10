@@ -11,7 +11,7 @@ export function intake(state: ReviewStateT): Partial<ReviewStateT> {
     return { summary: `PR #${state.pr}: sem range (--changed), roteamento pulado`, skills: [] };
   }
   try {
-    const { skills } = routeReview({ changed: state.changed, cwd: process.cwd() });
+    const { skills } = routeReview({ changed: state.changed, cwd: state.repoPath });
     return { summary: `PR #${state.pr}: ${skills.length} skill(s) roteada(s)`, skills };
   } catch (error) {
     const reason = (error instanceof Error ? error.message : String(error)).split("\n")[0];

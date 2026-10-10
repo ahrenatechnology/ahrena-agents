@@ -5,6 +5,8 @@ export type Verdict = "approve" | "request_changes" | "comment";
 /** Estado compartilhado do grafo de code review. */
 export const ReviewState = Annotation.Root({
   pr: Annotation<number>(),
+  /** Checkout do repositório a revisar (onde o git/route-review rodam). */
+  repoPath: Annotation<string>(),
   /** Range da mudança (base...head) que o roteador do framework lê. */
   changed: Annotation<string>(),
   /** Skills que a mudança selecionou, vindas do route-review.py. */
