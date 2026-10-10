@@ -2,14 +2,18 @@ import { parseArgs } from "node:util";
 import { buildGraph } from "./graph";
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({ options: { pr: { type: "string" } } });
-  if (!values.pr) {
-    console.error("uso: npm run dev -- --pr <n>");
-    process.exit(1);
-  }
+  const { values } = parseArgs({
+    options: {
+      pr: { type: "string" },
+      changed: { type: "string" },
+    },
+  });
 
   const graph = buildGraph();
-  const out = await graph.invoke({ pr: Number(values.pr) });
+  const out = await graph.invoke({
+    pr: values.pr ? Number(values.pr) : 0,
+    changed: values.changed,
+  });
   console.log(JSON.stringify(out, null, 2));
 }
 
