@@ -9,8 +9,14 @@ export const ReviewState = Annotation.Root({
   changed: Annotation<string>(),
   /** Skills que a mudança selecionou, vindas do route-review.py. */
   skills: Annotation<string[]>(),
+  /** Verdict do Argos, extraído do texto da revisão. */
   verdict: Annotation<Verdict>(),
+  /** Texto da revisão produzida pelo Argos. */
   summary: Annotation<string>(),
+  /** Decisão do passo seguinte (Erodos aplicou / Decisor avaliou). */
+  decision: Annotation<string>(),
+  /** Rodada do loop review↔fix (guard). */
+  round: Annotation<number>(),
 });
 
 export type ReviewStateT = typeof ReviewState.State;
