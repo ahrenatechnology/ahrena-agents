@@ -1,5 +1,7 @@
 import { parseArgs } from "node:util";
 import { buildGraph } from "./graph";
+import { renderPreview } from "./preview";
+import type { ReviewStateT } from "./state";
 
 // Carrega CLAUDE_CODE_OAUTH_TOKEN (e afins) de um .env local, se houver.
 try {
@@ -17,11 +19,19 @@ async function main(): Promise<void> {
   });
 
   const graph = buildGraph();
-  const out = await graph.invoke({
-    pr: values.pr ? Number(values.pr) : 0,
-    changed: values.changed,
-  });
-  console.log(JSON.stringify(out, null, 2));
+  const input = { pr: values.pr ? Number(values.pr) : 0, changed: values.changed };
+
+  // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.
+  const final: Partial<ReviewStateT> = { pr: input.pr, changed: input.changed };
+  const stream = await graph.stream(input, { streamMode: "updates" });
+  for await (const update of stream) {
+    for (const [node, patch] of Object.entries(update) as [string, Partial<ReviewStateT>][]) {
+      process.stderr.write(renderPreview(node, patch) + "\n");
+      Object.assign(final, patch);
+    }
+  }
+
+  console.log(JSON.stringify(final, null, 2));
 }
 
 main().catch((err) => {

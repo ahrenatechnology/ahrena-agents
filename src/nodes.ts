@@ -12,7 +12,6 @@ export function intake(state: ReviewStateT): Partial<ReviewStateT> {
     return { summary: `PR #${state.pr}: sem range (--changed), roteamento pulado`, skills: [] };
   }
   const { skills } = routeReview({ changed: state.changed, cwd: process.cwd() });
-  process.stderr.write(`▶ ${skills.length} skill(s) roteada(s)\n`);
   return { summary: `PR #${state.pr}: ${skills.length} skill(s) roteada(s)`, skills };
 }
 
