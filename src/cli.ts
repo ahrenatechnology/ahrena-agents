@@ -1,6 +1,13 @@
 import { parseArgs } from "node:util";
 import { buildGraph } from "./graph";
 
+// Carrega CLAUDE_CODE_OAUTH_TOKEN (e afins) de um .env local, se houver.
+try {
+  process.loadEnvFile();
+} catch {
+  // sem .env: segue com o ambiente como está
+}
+
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
