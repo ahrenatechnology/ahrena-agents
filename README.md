@@ -142,3 +142,5 @@ dentro da imagem** no build — o cliente não lida com submodule.
 - ✅ Argos real revisando read-only (mesmo prompt/skills do dev).
 - ✅ Prévias por etapa + spinner; roteamento via `route-review.py` do framework.
 - ⬜ Publicar o verdict no PR, Erodos (fix) e Decisor (gate de merge).
+
+<!-- PR de teste para ver o argos[bot] comentando -->
