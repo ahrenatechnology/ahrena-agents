@@ -8,10 +8,11 @@ dependia de uma pessoa sênior em cada etapa passa a rodar de forma consistente,
 toda entrega, sem gargalo humano.
 
 O **primeiro agente do squad** é o **Argos**, de code review. Estudos apontam que
-times gastam de 3 a 6 horas por semana, por desenvolvedor, em code review
-([Google](https://arxiv.org/html/2412.18531v2) ~3 h,
-[OSS](https://arxiv.org/html/2412.18531v2) ~6 h,
-[Codacy](https://blog.codacy.com/10-facts-about-code-reviews-and-quality) ~5 h).
+times gastam de 3 a 6 horas por semana, por desenvolvedor, em code review: um
+estudo de 2024 reporta **3,2 h/semana no Google** e **6,4 h/semana em projetos
+open source** ([Automated Code Review In Practice](https://arxiv.org/html/2412.18531v2)),
+e a [Codacy](https://blog.codacy.com/10-facts-about-code-reviews-and-quality)
+aponta ~5 h.
 E, mesmo com essas horas investidas, uma revisão frágil ou inconsistente deixa
 passar código que sai caro depois: um estudo de 2022 com 39 bases de produção
 mostrou que código de baixa qualidade concentra **15× mais defeitos** e exige
