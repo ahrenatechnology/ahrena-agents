@@ -128,8 +128,9 @@ secret `CLAUDE_CODE_OAUTH_TOKEN`.
 |---|---|---|
 | `CLAUDE_CODE_OAUTH_TOKEN` | sim (ou `ANTHROPIC_API_KEY`) | token do Claude Code |
 | `GH_TOKEN` | no CI | token do GitHub (usado pelo `gh`, passo futuro de publicar o verdict) |
+| `ARGOS_MODEL` | não | modelo do Argos; default `claude-opus-4-8`. Equivale a `--model` |
 
-CLI: `ahrena-review --pr <n> [--changed <base>...<head>]`.
+CLI: `ahrena-review --pr <n> [--changed <base>...<head>] [--model <id>]`.
 
 ---
 

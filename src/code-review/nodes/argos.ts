@@ -16,7 +16,7 @@ export async function argos(state: ReviewStateT): Promise<Partial<ReviewStateT>>
       "`Verdict: approve` (nada bloqueia o merge), `Verdict: request_changes` (há bloqueio) ou",
       "`Verdict: comment` (só observação, sem decisão). Ressalvas não-bloqueantes ainda são `approve`.",
     ].join("\n");
-    const text = await runArgos({ cwd: state.repoPath, prompt });
+    const text = await runArgos({ cwd: state.repoPath, prompt, model: state.model });
     return { verdict: parseVerdict(text), summary: text || "(Argos não devolveu texto)" };
   } catch (error) {
     const reason = (error instanceof Error ? error.message : String(error)).split("\n")[0];

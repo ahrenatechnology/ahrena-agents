@@ -2,18 +2,22 @@ import { query, type Options } from "@anthropic-ai/claude-agent-sdk";
 import { spinner } from "../shared/progress";
 import { PLUGINS } from "../shared/paths";
 
+/** Modelo default do Argos quando nada é passado por parâmetro/env. */
+export const DEFAULT_MODEL = "claude-opus-4-8";
+
 /**
  * Invoca o agente orquestrador `argos` do ahrena-framework (plugin
  * `code-review`), que conduz a review: roteia, roda as lenses, funde num
  * verdict. Carrega todos os plugins das lenses. Mesmo prompt/skills do dev —
  * zero cópia.
  */
-export async function runArgos(opts: { cwd: string; prompt: string }): Promise<string> {
+export async function runArgos(opts: { cwd: string; prompt: string; model?: string }): Promise<string> {
   const controller = new AbortController();
   const TIMEOUT_S = 600;
   const timer = setTimeout(() => controller.abort(), TIMEOUT_S * 1000);
 
   const options: Options = {
+    model: opts.model || DEFAULT_MODEL,
     plugins: PLUGINS.map((path) => ({ type: "local", path })),
     // O Argos orquestrador vive no plugin `code-review`. NOTA: o plugin
     // `quality` ainda traz um agente legado também chamado "argos" — se houver
