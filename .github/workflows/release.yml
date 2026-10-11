@@ -38,7 +38,8 @@ jobs:
 
       # --- Publica o pacote npm (GitHub Packages) ---
       - name: Publica npm (idempotente)
-        run: npm publish || echo "npm: versão já publicada; seguindo para a imagem e o release"
+        run: |
+          npm publish || echo "npm ja publicado nessa versao, seguindo"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
