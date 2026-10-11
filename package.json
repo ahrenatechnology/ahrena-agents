@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Runtime de orquestração dos agentes de code review da Ahrena.",
+  "license": "Apache-2.0",
   "bin": {
     "ahrena-review": "bin/cli.mjs"
   },
