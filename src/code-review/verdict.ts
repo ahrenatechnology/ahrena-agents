@@ -1,6 +1,6 @@
 import type { Verdict } from "./state";
 
-const LINE = /^\s*\**\s*(?:verdict|veredito)\s*\**\s*[:\-]\s*`?\**\s*(approve|request[ _]changes|comment)/gim;
+const LINE = /^[\s*`]*(?:verdict|veredito)[\s*`]*[:\-][\s*`]*(approve|request[ _]changes|comment)/gim;
 
 /**
  * Extrai o verdict do texto do Argos pelo marcador de LINHA ("Verdict: X" /
