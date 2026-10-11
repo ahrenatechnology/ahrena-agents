@@ -1,11 +1,23 @@
 {
-  "name": "@ahrena/agents",
+  "name": "@ahrenatechnology/ahrena-agents",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "description": "Runtime de orquestração dos agentes de code review da Ahrena.",
   "bin": {
     "ahrena-review": "bin/cli.mjs"
+  },
+  "files": [
+    "src",
+    "bin",
+    "tsconfig.json",
+    "ahrena/ahrena-framework"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahrenatechnology/ahrena-agents.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
     "dev": "tsx src/cli.ts",

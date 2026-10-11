@@ -24,18 +24,28 @@ Guarde o valor em `CLAUDE_CODE_OAUTH_TOKEN` (ou use `ANTHROPIC_API_KEY`).
 Todas chamam o mesmo núcleo com os mesmos argumentos:
 `--pr <n> --changed <base>...<head>`.
 
-### 1. Local, com npx
+### 1. npx (pacote publicado)
+
+Pacote no GitHub Packages: `@ahrenatechnology/ahrena-agents`. O framework já vai
+**baked** no pacote (sem submodule). O GitHub Packages npm exige autenticação para
+instalar (mesmo público), então configure o registry do escopo uma vez:
 
 ```bash
-git clone --recurse-submodules https://github.com/ahrenatechnology/ahrena-agents
-cd ahrena-agents
-npm install
-echo "CLAUDE_CODE_OAUTH_TOKEN=<seu-token>" > .env   # carregado automaticamente
-
-npx ahrena-review --pr 1 --changed "origin/main...HEAD"
+# ~/.npmrc
+@ahrenatechnology:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=<github-token-com-read:packages>
+```
+```bash
+export CLAUDE_CODE_OAUTH_TOKEN="<seu-token-claude>"
+npx @ahrenatechnology/ahrena-agents --pr 1 --changed "origin/main...HEAD"
 ```
 
-O `--recurse-submodules` traz o `ahrena-framework` (a fonte dos prompts/skills).
+Ou a partir de um clone (dev), com o framework via submodule:
+```bash
+git clone --recurse-submodules https://github.com/ahrenatechnology/ahrena-agents
+cd ahrena-agents && npm install
+npx ahrena-review --pr 1 --changed "origin/main...HEAD"
+```
 
 ### 2. Nuvem, com Docker (imagem self-contained)
 
