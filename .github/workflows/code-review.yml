@@ -37,6 +37,7 @@ jobs:
         run: npm ci
 
       - name: Argos conduz a review
+        id: argos
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
@@ -45,9 +46,11 @@ jobs:
             --changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" \
             > review.json 2> review.log || true
           cat review.log >&2
+          verdict="$(jq -r '.verdict // "comment"' review.json)"
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
           {
             echo "<!-- ahrena-review -->"
-            echo "**Verdict:** \`$(jq -r '.verdict // "comment"' review.json)\`"
+            echo "**Verdict:** \`$verdict\`"
             echo
             jq -r '.summary // "(sem review)"' review.json
           } > comment.md
