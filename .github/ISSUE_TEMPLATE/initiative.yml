@@ -1,0 +1,48 @@
+# Installed by Ahrena: ahrena-contributing, skills/installing-issue-forms.
+# Adapted from the predecessor framework's forms. The sections map to the
+# issue-quality rule, and `Acceptance criteria` is what the traceability check reads.
+name: "Initiative"
+description: Frame a problem worth solving and group the epics that address it
+title: "{{ brief initiative summary }}"
+type: Initiative
+labels:
+  - "status: to refinement"
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An initiative frames a problem and gathers the epics that solve it. Keep it about the problem and the outcome, not the solution.
+
+  - type: textarea
+    id: initiative-problem
+    attributes:
+      label: Problem
+      description: "What problem are we solving, for whom, and why now?"
+      placeholder: ex. Release status is reconciled by hand every week; it is invisible outside each repo, so planning runs on stale information.
+      value: |
+        Problem
+    validations:
+      required: true
+
+  - type: textarea
+    id: initiative-outcomes
+    attributes:
+      label: Outcomes
+      description: "The measurable outcomes that tell us the initiative succeeded. Prefer numbers."
+      placeholder: ex. Status is one view, zero manual reconciliation; lead time from idea to production down 30%.
+      value: |
+        Outcomes
+    validations:
+      required: true
+
+  - type: textarea
+    id: initiative-scope
+    attributes:
+      label: Scope and epics
+      description: "What is in scope, what is explicitly out, and the epics this initiative will spawn (link them as they are created)."
+      placeholder: "ex. In: the pipeline vocabulary and the project view. Out: deployment automation. Epics: #.., #.."
+      value: |
+        Scope and epics
+    validations:
+      required: false
