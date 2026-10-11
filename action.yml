@@ -1,8 +1,8 @@
 name: "Ahrena Code Review"
-description: "Argos revisa um pull request contra as regras de engenharia da Ahrena (read-only)."
+description: "AI pull-request review by the Argos agent: checks your diff against engineering and security rules and reports a verdict. Read-only — it reviews the code, never runs your app."
 author: "Ahrena"
 branding:
-  icon: "check-circle"
+  icon: "eye"
   color: "purple"
 
 inputs:
