@@ -1,0 +1,85 @@
+# Pipeline — mirror the `status:` label onto the "Ahrena Delivery" project Status field.
+# Drop this into each repo at .github/workflows/pipeline-sync.yml.
+# The label is the source of truth; this derives the native Status from it.
+#
+# Needs the "Ahrena Eunomya" GitHub App (see ahrena-scripts README) with:
+#   - Repository: Issues read & write, Pull requests read & write, Metadata read
+#   - Organization: Projects read & write
+# (read alone covers this one-way sync; write makes Eunomya the owner of the
+#  label<->status consistency and enables a future card->label reverse sync.)
+# and these org (or repo) values set:
+#   - variable AHRENA_EUNOMYA_APP_ID           = the App's id
+#   - secret   AHRENA_EUNOMYA_APP_PRIVATE_KEY  = the App's .pem contents
+name: Pipeline — sync status to project
+
+on:
+  issues:
+    types: [opened, reopened, labeled, unlabeled]
+  pull_request:
+    types: [opened, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app
+        with:
+          app-id: ${{ vars.AHRENA_EUNOMYA_APP_ID }}
+          private-key: ${{ secrets.AHRENA_EUNOMYA_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - uses: actions/github-script@v7
+        env:
+          PROJECT_OWNER: ahrenatechnology
+          PROJECT_NUMBER: "2"
+        with:
+          github-token: ${{ steps.app.outputs.token }}
+          script: |
+            const owner = process.env.PROJECT_OWNER;
+            const number = parseInt(process.env.PROJECT_NUMBER, 10);
+            const item = context.payload.issue || context.payload.pull_request;
+            if (!item) return;
+
+            const labels = (item.labels || []).map(l => l.name);
+            const statusLabel = labels.find(n => n.startsWith('status: '));
+            if (!statusLabel) { core.info('no status label; nothing to do'); return; }
+
+            // "status: to review" -> "To Review"
+            const optionName = statusLabel
+              .slice('status: '.length)
+              .replace(/\b\w/g, c => c.toUpperCase());
+
+            const proj = await github.graphql(`
+              query($owner:String!, $number:Int!) {
+                organization(login:$owner) {
+                  projectV2(number:$number) {
+                    id
+                    field(name:"Status") {
+                      ... on ProjectV2SingleSelectField { id options { id name } }
+                    }
+                  }
+                }
+              }`, { owner, number });
+
+            const project = proj.organization.projectV2;
+            const field = project.field;
+            const option = field.options.find(o => o.name === optionName);
+            if (!option) { core.warning(`no Status option named "${optionName}"`); return; }
+
+            const added = await github.graphql(`
+              mutation($p:ID!, $c:ID!) {
+                addProjectV2ItemById(input:{ projectId:$p, contentId:$c }) { item { id } }
+              }`, { p: project.id, c: item.node_id });
+
+            await github.graphql(`
+              mutation($p:ID!, $i:ID!, $f:ID!, $o:String!) {
+                updateProjectV2ItemFieldValue(input:{
+                  projectId:$p, itemId:$i, fieldId:$f, value:{ singleSelectOptionId:$o }
+                }) { projectV2Item { id } }
+              }`, { p: project.id, i: added.addProjectV2ItemById.item.id, f: field.id, o: option.id });
+
+            core.info(`Status set to "${optionName}" for ${item.html_url}`);
