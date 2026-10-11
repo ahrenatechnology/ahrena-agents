@@ -16,6 +16,7 @@ async function main(): Promise<void> {
       pr: { type: "string" },
       changed: { type: "string" },
       "repo-path": { type: "string" },
+      model: { type: "string" },
     },
   });
 
@@ -24,6 +25,8 @@ async function main(): Promise<void> {
     pr: values.pr ? Number(values.pr) : 0,
     changed: values.changed,
     repoPath: values["repo-path"] ?? process.cwd(),
+    // Vazio → o agente aplica o default do Argos.
+    model: values.model ?? process.env.ARGOS_MODEL,
   };
 
   // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.

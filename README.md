@@ -1,15 +1,35 @@
 # ahrena-agents
 
-**Stack de agentes de desenvolvimento da Ahrena** — um squad de agentes de dev no
-seu pipeline, orquestrado com LangGraph + Claude Agent SDK. O **primeiro agente do
-squad** é o **code review** (Argos): revisa um pull request contra as regras de
-engenharia do
-[`ahrena-framework`](https://github.com/ahrenatechnology/ahrena-framework).
+**Stack de agentes de desenvolvimento da Ahrena** — um squad de agentes que
+trabalham dentro do seu pipeline de entrega, cada um assumindo uma etapa do ciclo
+de desenvolvimento. Serve a qualquer time que precisa escalar seu pipeline de
+desenvolvimento sem escalar o time na mesma proporção: o trabalho que antes
+dependia de uma pessoa sênior em cada etapa passa a rodar de forma consistente, em
+toda entrega, sem gargalo humano.
 
-A review é **sobre como o código foi implementado** — estática, de leitura. Ela
-**não** sobe a aplicação, não builda imagem, não roda testes. Isso é do pipeline;
-a review só consome os resultados. O Argos roda **read-only** (lê o código, julga
-contra as regras) e os prompts/skills vêm do framework — nada é duplicado aqui.
+O **primeiro agente do squad** é o **Argos**, de code review. Estudos apontam que
+times gastam de 3 a 6 horas por semana, por desenvolvedor, em code review: um
+estudo de 2024 reporta **3,2 h/semana no Google** e **6,4 h/semana em projetos
+open source** ([Automated Code Review In Practice](https://arxiv.org/html/2412.18531v2)),
+e a [Codacy](https://blog.codacy.com/10-facts-about-code-reviews-and-quality)
+aponta ~5 h.
+E, mesmo com essas horas investidas, uma revisão frágil ou inconsistente deixa
+passar código que sai caro depois: um estudo de 2022 com 39 bases de produção
+mostrou que código de baixa qualidade concentra **15× mais defeitos** e exige
+**124% mais tempo** para resolver cada problema
+([Tornhill & Borg](https://arxiv.org/pdf/2203.04374)). O Argos assume esse
+trabalho: a cada pull request, avalia o código contra um conjunto de regras de
+engenharia — por padrão as do
+[`ahrena-framework`](https://github.com/ahrenatechnology/ahrena-framework) — e
+devolve um parecer com o mesmo critério, aplicado da mesma forma, em toda entrega.
+
+O Argos revisa **como o código foi escrito**: é uma análise de leitura, que não
+sobe a aplicação, não builda imagem nem roda testes — isso continua sendo papel do
+pipeline, e a review apenas consome esses resultados. Ele opera em **modo
+read-only** (lê e julga, nunca altera o código) e herda prompts e regras direto do
+framework, mantendo uma única fonte de verdade entre todos os agentes.
+
+Orquestração em LangGraph + Claude Agent SDK.
 
 ## Pré-requisito: token do Claude
 
@@ -108,8 +128,9 @@ secret `CLAUDE_CODE_OAUTH_TOKEN`.
 |---|---|---|
 | `CLAUDE_CODE_OAUTH_TOKEN` | sim (ou `ANTHROPIC_API_KEY`) | token do Claude Code |
 | `GH_TOKEN` | no CI | token do GitHub (usado pelo `gh`, passo futuro de publicar o verdict) |
+| `ARGOS_MODEL` | não | modelo do Argos; default `claude-opus-4-8`. Equivale a `--model` |
 
-CLI: `ahrena-review --pr <n> [--changed <base>...<head>]`.
+CLI: `ahrena-review --pr <n> [--changed <base>...<head>] [--model <id>]`.
 
 ---
 

@@ -9,6 +9,8 @@ export const ReviewState = Annotation.Root({
   repoPath: Annotation<string>(),
   /** Range da mudança (base...head). */
   changed: Annotation<string>(),
+  /** Modelo a usar no Argos; vazio → default do agente. */
+  model: Annotation<string>(),
   /** Verdict do Argos, extraído do texto da review. */
   verdict: Annotation<Verdict>(),
   /** Texto da review conduzida pelo Argos. */
