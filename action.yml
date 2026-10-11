@@ -12,7 +12,7 @@ inputs:
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/ahrenatechnology/code-review:v1"
+  image: "docker://ghcr.io/ahrenatechnology/ahrena-agents:v1"
   env:
     CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude-token }}
     GH_TOKEN: ${{ github.token }}

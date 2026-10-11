@@ -44,17 +44,17 @@ de nada além de Docker.
 
 ```bash
 # build
-docker build -t ghcr.io/ahrenatechnology/code-review:v1 .
+docker build -t ghcr.io/ahrenatechnology/ahrena-agents:v1 .
 
 # rodar contra um checkout (montado em /repo)
 docker run --rm \
   -e CLAUDE_CODE_OAUTH_TOKEN="$CLAUDE_CODE_OAUTH_TOKEN" \
   -v "$PWD:/repo" -w /repo \
-  ghcr.io/ahrenatechnology/code-review:v1 \
+  ghcr.io/ahrenatechnology/ahrena-agents:v1 \
   --pr 1 --changed "origin/main...HEAD"
 
 # publicar (para rodar como job/function na nuvem: Cloud Run Job, ECS, Lambda-container…)
-docker push ghcr.io/ahrenatechnology/code-review:v1
+docker push ghcr.io/ahrenatechnology/ahrena-agents:v1
 ```
 
 Na nuvem, é um **job run-to-completion**: recebe o token por env e os SHAs por
@@ -86,7 +86,7 @@ A Action ([`action.yml`](action.yml)) é um wrapper Docker que roda a imagem
 publicada e deriva `--pr`/`--changed` do contexto do PR. O cliente só precisa do
 secret `CLAUDE_CODE_OAUTH_TOKEN`.
 
-> A Action aponta para `ghcr.io/ahrenatechnology/code-review:v1` — **a imagem
+> A Action aponta para `ghcr.io/ahrenatechnology/ahrena-agents:v1` — **a imagem
 > precisa estar publicada** (passo 2) e o pacote acessível para o cliente puxar.
 
 ---
