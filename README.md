@@ -1,8 +1,9 @@
 # ahrena-agents
 
-Runtime de orquestração dos agentes de code review da Ahrena (LangGraph + Claude
-Agent SDK). O primeiro processo é o **code review**: o agente **Argos** revisa um
-pull request contra as regras de engenharia do
+**Stack de agentes de desenvolvimento da Ahrena** — um squad de agentes de dev no
+seu pipeline, orquestrado com LangGraph + Claude Agent SDK. O **primeiro agente do
+squad** é o **code review** (Argos): revisa um pull request contra as regras de
+engenharia do
 [`ahrena-framework`](https://github.com/ahrenatechnology/ahrena-framework).
 
 A review é **sobre como o código foi implementado** — estática, de leitura. Ela

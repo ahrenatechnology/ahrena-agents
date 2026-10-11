@@ -1,5 +1,5 @@
 name: "Ahrena Agents"
-description: "Ahrena's AI agent suite for your pipeline. Now: code review (Argos) — checks your PR against engineering & security rules, read-only. More agents coming."
+description: "An AI development squad for your pipeline — a stack of dev agents from Ahrena. First agent in the squad: code review (Argos). More joining soon."
 author: "Ahrena"
 branding:
   icon: "eye"
