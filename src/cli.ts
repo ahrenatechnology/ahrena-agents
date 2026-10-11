@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { readFileSync } from "node:fs";
 import { buildGraph } from "./code-review/graph";
 import { renderPreview } from "./code-review/preview";
 import type { ReviewStateT } from "./code-review/state";
@@ -16,14 +17,25 @@ async function main(): Promise<void> {
       pr: { type: "string" },
       changed: { type: "string" },
       "repo-path": { type: "string" },
+      gates: { type: "string" },
     },
   });
+
+  let gates: string | undefined;
+  if (values.gates) {
+    try {
+      gates = readFileSync(values.gates, "utf8");
+    } catch {
+      gates = undefined;
+    }
+  }
 
   const graph = buildGraph();
   const input = {
     pr: values.pr ? Number(values.pr) : 0,
     changed: values.changed,
     repoPath: values["repo-path"] ?? process.cwd(),
+    gates,
   };
 
   // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.

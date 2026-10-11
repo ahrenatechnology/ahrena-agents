@@ -9,6 +9,8 @@ export const ReviewState = Annotation.Root({
   repoPath: Annotation<string>(),
   /** Range da mudança (base...head). */
   changed: Annotation<string>(),
+  /** Resultados de gates já rodados no pipeline (tsc, audit…), como fato. */
+  gates: Annotation<string>(),
   /** Verdict do Argos, extraído do texto da review. */
   verdict: Annotation<Verdict>(),
   /** Texto da review conduzida pelo Argos. */

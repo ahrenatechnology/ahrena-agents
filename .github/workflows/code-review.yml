@@ -21,7 +21,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      # Login como o App Argos → token de instalação (é isso que dá a "cara").
+      # Login como o App Argos → token de instalação (a "cara" nos comentários).
       - name: Login como Argos
         id: app-token
         uses: actions/create-github-app-token@v1
@@ -36,23 +36,37 @@ jobs:
       - name: Instala
         run: npm ci
 
+      # Gates decididos pelo pipeline (não pelo agente) — viram fato pro Argos.
+      - name: Gates (tsc + audit)
+        run: |
+          if npm run typecheck >/dev/null 2>&1; then TSC="OK (0 erros)"; else TSC="FALHOU"; fi
+          AUDIT=$(npm audit --json 2>/dev/null | jq -r '.metadata.vulnerabilities | "critical \(.critical), high \(.high), moderate \(.moderate), low \(.low)"' 2>/dev/null || echo "indisponivel")
+          {
+            echo "- tsc --noEmit: $TSC"
+            echo "- npm audit: $AUDIT"
+          } > gates.md
+          cat gates.md
+
       - name: Argos conduz a review
+        id: argos
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           npx tsx src/cli.ts \
             --pr "${{ github.event.pull_request.number }}" \
             --changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" \
+            --gates gates.md \
             > review.json 2> review.log || true
           cat review.log >&2
+          VERDICT=$(jq -r '.verdict // "comment"' review.json)
+          echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
           {
             echo "<!-- ahrena-review -->"
-            echo "**Verdict:** \`$(jq -r '.verdict // "comment"' review.json)\`"
+            echo "**Verdict:** \`$VERDICT\`"
             echo
             jq -r '.summary // "(sem review)"' review.json
           } > comment.md
 
-      # Posta COM o token do App → o comentário aparece como argos[bot].
       - name: Posta o verdict como argos[bot]
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}

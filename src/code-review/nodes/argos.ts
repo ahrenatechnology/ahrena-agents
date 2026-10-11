@@ -9,7 +9,10 @@ import { parseVerdict } from "../verdict";
  */
 export async function argos(state: ReviewStateT): Promise<Partial<ReviewStateT>> {
   try {
-    const prompt = `Conduza a review do PR #${state.pr} (mudança: ${state.changed ?? "não informada"}) e devolva o verdict.`;
+    const gatesNote = state.gates
+      ? `\n\nResultados de gates já rodados no pipeline (trate como FATO decidido, não re-rode):\n${state.gates}`
+      : "";
+    const prompt = `Conduza a review do PR #${state.pr} (mudança: ${state.changed ?? "não informada"}).${gatesNote}\n\nDevolva o verdict.`;
     const text = await runArgos({ cwd: state.repoPath, prompt });
     return { verdict: parseVerdict(text), summary: text || "(Argos não devolveu texto)" };
   } catch (error) {
