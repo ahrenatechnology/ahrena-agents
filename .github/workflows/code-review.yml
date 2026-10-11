@@ -1,4 +1,4 @@
-name: Code Review (Ahrena)
+name: Code Review (Argos)
 
 on:
   pull_request:
@@ -6,10 +6,10 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write # para comentar o verdict (passo futuro)
+  pull-requests: write
 
 concurrency:
-  group: ahrena-review-${{ github.event.pull_request.number }}
+  group: argos-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -18,21 +18,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive # traz o ahrena-framework (submodule pinado)
-          fetch-depth: 0 # histórico para o diff base...head
+          submodules: recursive
+          fetch-depth: 0
+
+      # Login como o App Argos → token de instalação (é isso que dá a "cara").
+      - name: Login como Argos
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.ARGOS_APP_ID }}
+          private-key: ${{ secrets.ARGOS_APP_PRIVATE_KEY }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Instala dependências
+      - name: Instala
         run: npm ci
 
-      - name: Argos revisa o PR
+      - name: Argos conduz a review
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           npx tsx src/cli.ts \
             --pr "${{ github.event.pull_request.number }}" \
-            --changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+            --changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" \
+            > review.json 2> review.log || true
+          cat review.log >&2
+          {
+            echo "<!-- ahrena-review -->"
+            echo "**Verdict:** \`$(jq -r '.verdict // "comment"' review.json)\`"
+            echo
+            jq -r '.summary // "(sem review)"' review.json
+          } > comment.md
+
+      # Posta COM o token do App → o comentário aparece como argos[bot].
+      - name: Posta o verdict como argos[bot]
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
