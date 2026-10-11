@@ -6,8 +6,6 @@ import type { ReviewStateT } from "./state";
  */
 export function renderPreview(node: string, patch: Partial<ReviewStateT>): string {
   switch (node) {
-    case "intake":
-      return `▶ roteado · ${patch.skills?.length ?? 0} skill(s)`;
     case "argos":
       return `✓ Argos · verdict: ${patch.verdict ?? "?"}`;
     case "erodos":

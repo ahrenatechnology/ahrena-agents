@@ -1,11 +1,12 @@
 import { query, type Options } from "@anthropic-ai/claude-agent-sdk";
 import { spinner } from "../shared/progress";
-import { QUALITY_PLUGIN } from "../shared/paths";
+import { PLUGINS } from "../shared/paths";
 
 /**
- * Invoca o agente `argos` REAL do ahrena-framework, carregado como plugin
- * local, e devolve o texto que ele produz. Mesmo prompt e skills do dev —
- * zero cópia (o prompt vem do próprio argos.md via plugin).
+ * Invoca o agente orquestrador `argos` do ahrena-framework (plugin
+ * `code-review`), que conduz a review: roteia, roda as lenses, funde num
+ * verdict. Carrega todos os plugins das lenses. Mesmo prompt/skills do dev —
+ * zero cópia.
  */
 export async function runArgos(opts: { cwd: string; prompt: string }): Promise<string> {
   const controller = new AbortController();
@@ -13,12 +14,14 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
   const timer = setTimeout(() => controller.abort(), TIMEOUT_S * 1000);
 
   const options: Options = {
-    plugins: [{ type: "local", path: QUALITY_PLUGIN }],
+    plugins: PLUGINS.map((path) => ({ type: "local", path })),
+    // O Argos orquestrador vive no plugin `code-review`. NOTA: o plugin
+    // `quality` ainda traz um agente legado também chamado "argos" — se houver
+    // ambiguidade no run real, desambiguar (ou remover quality/argos.md no
+    // framework, já que o orquestrador o substitui).
     agent: "argos",
     permissionMode: "dontAsk",
-    // Read-only confiável: SEM Bash. O Bash fazia o agente pendurar em comandos
-    // que bloqueiam. As condições de script ficam `unchecked` (semântica do
-    // ADR-002). Decidir os gates fica para o orquestrador rodá-los e alimentar.
+    // Read-only: o Argos conduz e lê; quem escreve (fix) e mergeia é o runtime.
     allowedTools: ["Read", "Grep", "Glob"],
     abortController: controller,
     maxTurns: 100,
@@ -27,7 +30,7 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
 
   const chunks: string[] = [];
   const problems: string[] = [];
-  const progress = spinner("Argos pensando…");
+  const progress = spinner("Argos conduzindo a review…");
   let actions = 0;
   try {
     for await (const message of query({ prompt: opts.prompt, options })) {
@@ -35,7 +38,7 @@ export async function runArgos(opts: { cwd: string; prompt: string }): Promise<s
         if (message.error) problems.push(`assistant: ${message.error}`);
         for (const block of message.message.content) {
           if (block.type === "text") chunks.push(block.text);
-          else if (block.type === "tool_use") progress.update(`Argos analisando… ${++actions} ação(ões)`);
+          else if (block.type === "tool_use") progress.update(`Argos trabalhando… ${++actions} ação(ões)`);
         }
       } else if (message.type === "result" && message.subtype !== "success") {
         const detail = message.errors.length ? message.errors.join(" | ") : message.subtype;
