@@ -1,6 +1,6 @@
 {
   "name": "@ahrena/agents",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Runtime de orquestração dos agentes de code review da Ahrena.",
