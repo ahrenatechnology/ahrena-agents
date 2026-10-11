@@ -1,5 +1,5 @@
-name: "Ahrena Code Review"
-description: "AI pull-request review by the Argos agent: checks your diff against engineering and security rules and reports a verdict. Read-only — it reviews the code, never runs your app."
+name: "Ahrena Agents"
+description: "Ahrena's AI agent suite for your pipeline. Now: code review (Argos) — checks your PR against engineering & security rules, read-only. More agents coming."
 author: "Ahrena"
 branding:
   icon: "eye"
