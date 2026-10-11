@@ -1,5 +1,10 @@
 FROM node:20-slim
 
+# Linka a imagem ao repositório no GitHub (aparece em Packages) + metadados.
+LABEL org.opencontainers.image.source="https://github.com/ahrenatechnology/ahrena-agents" \
+      org.opencontainers.image.description="Ahrena's AI agent suite — code review (Argos)" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
 # python3 (route-review.py) e git (diff/show) são usados pelo roteamento.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 git ca-certificates \
