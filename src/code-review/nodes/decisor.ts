@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import type { ReviewStateT } from "../state";
 import { runClef, type ClefAnswers, type ClefQuestion } from "../clef";
+import { countFindings } from "../findings";
 
 /**
  * Perguntas tipadas que o Clef responde sobre o PR — o contrato do decisor.
@@ -63,8 +64,11 @@ function diffStats(repoPath: string, changed?: string) {
 
 /** Monta o dossiê (o `state` do Clef) com o que o grafo já apurou. */
 function buildDossier(state: ReviewStateT) {
+  const findings = state.findings ?? [];
   return {
     verdict: state.verdict,
+    findings, // achados estruturados: sinal mais objetivo que a prosa
+    counts: countFindings(findings),
     review: (state.summary ?? "").slice(0, 8000),
     diff: diffStats(state.repoPath, state.changed),
     changed: state.changed ?? null,

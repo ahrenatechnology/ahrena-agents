@@ -122,23 +122,64 @@ secret `CLAUDE_CODE_OAUTH_TOKEN`.
 
 ---
 
-## Configuração (env)
+## Configuração
 
-| Variável | Obrigatória | O quê |
+### Credenciais (obrigatórias)
+
+| Variável | Onde | O quê |
 |---|---|---|
-| `CLAUDE_CODE_OAUTH_TOKEN` | sim (ou `ANTHROPIC_API_KEY`) | token do Claude Code |
-| `GH_TOKEN` | no CI | token do GitHub (usado pelo `gh`, passo futuro de publicar o verdict) |
-| `CLOUDFLARE_ACCOUNT_ID` | p/ o Decisor | account id da Cloudflare (Workers AI) |
-| `CLOUDFLARE_API_TOKEN` | p/ o Decisor | API token da Cloudflare, escopo Workers AI |
-| `ARGOS_MODEL` | não | modelo do Argos; default `claude-opus-4-8`. Equivale a `--model` |
-| `CLEF_MODEL` | não | modelo do Decisor; default `clef` (ex.: `clef-flash`). Equivale a `--clef-model` |
-| `DECISOR_AUTO_MERGE_MIN` | não | limiar: prob. mínima de auto_merge (0–1); default `0.85`. Equivale a `--auto-merge-min` |
-| `DECISOR_REGRESSION_MAX` | não | limiar: prob. máxima de regressão (0–1); default `0.15`. Equivale a `--regression-max` |
+| `CLAUDE_CODE_OAUTH_TOKEN` | env / Action `claude-token` | token do Claude Code (ou `ANTHROPIC_API_KEY`). **Sempre.** |
+| `CLOUDFLARE_ACCOUNT_ID` | env / Action `cloudflare-account-id` | account id da Cloudflare — **para o Decisor (Clef)** |
+| `CLOUDFLARE_API_TOKEN` | env / Action `cloudflare-api-token` | API token da Cloudflare, escopo **Workers AI** — para o Decisor |
+| `GH_TOKEN` | no CI (automático na Action) | token do GitHub, usado pelo `gh` |
 
-Todo valor/intervalo tem **default da plataforma** (o já testado) e pode ser
-**sobrescrito** por flag (que vence a env). Na Action, cada um é um `input`.
+> Sem as credenciais da Cloudflare o Argos ainda revisa, mas o Decisor degrada
+> para `hold_for_human` (não aprova o merge sozinho).
 
-CLI: `ahrena-review --pr <n> [--changed <base>...<head>] [--model <id>] [--clef-model <id>] [--auto-merge-min <0–1>] [--regression-max <0–1>]`.
+### Parâmetros ajustáveis
+
+Todo valor/intervalo tem **default da plataforma** (o valor que a gente já
+testou) e pode ser **sobrescrito** pelo cliente. **Precedência:** flag de CLI →
+variável de ambiente → default. Na GitHub Action, cada um é um `input`.
+
+| Flag (CLI/npx) | Env (CI/Docker) | Action input | Default | O que controla |
+|---|---|---|---|---|
+| `--model` | `ARGOS_MODEL` | `argos-model` | `claude-opus-4-8` | modelo do **Argos** (quem revisa) |
+| `--clef-model` | `CLEF_MODEL` | `clef-model` | `clef` | modelo do **Decisor** (ex.: `clef-flash`, mais rápido) |
+| `--auto-merge-min` | `DECISOR_AUTO_MERGE_MIN` | `auto-merge-min` | `0.85` | prob. **mínima** de `auto_merge` p/ fechar sozinho (0–1) |
+| `--regression-max` | `DECISOR_REGRESSION_MAX` | `regression-max` | `0.15` | prob. **máxima** de regressão tolerada (0–1) |
+| `--max-warnings` | `DECISOR_MAX_WARNINGS` | `max-warnings` | `2` | máx. de **warnings** que ainda vai ao Clef; acima disso o **pré-gate** delega (ex.: `2` ⇒ 3+ warnings = delega) |
+
+Os dois limiares de probabilidade são **presos em [0,1]**; valor vazio ou
+inválido cai no default. O `--max-warnings` é a contagem a partir dos **achados
+estruturados** que o Argos entrega.
+
+**Exemplos**
+
+```bash
+# CLI: afrouxa o gate e usa o modelo rápido do Clef
+ahrena-review --pr 12 --changed "origin/main...HEAD" \
+  --clef-model clef-flash --auto-merge-min 0.80 --max-warnings 3
+```
+
+```yaml
+# GitHub Action: só os inputs que você quer mudar; o resto fica no default
+- uses: ahrenatechnology/ahrena-agents@v1
+  with:
+    claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    auto-merge-min: "0.90"   # mais conservador que o default
+    max-warnings: "1"        # 2+ warnings já delega
+```
+
+Forma completa da CLI:
+
+```
+ahrena-review --pr <n> [--changed <base>...<head>]
+  [--model <id>] [--clef-model <id>]
+  [--auto-merge-min <0–1>] [--regression-max <0–1>] [--max-warnings <n>]
+```
 
 ---
 
