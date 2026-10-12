@@ -160,6 +160,10 @@ dentro da imagem** no build — o cliente não lida com submodule.
 
 ## Estado atual
 
-- ✅ Argos real revisando read-only (mesmo prompt/skills do dev).
-- ✅ Prévias por etapa + spinner; roteamento via `route-review.py` do framework.
-- ⬜ Publicar o verdict no PR, Erodos (fix) e Decisor (gate de merge).
+- ✅ Argos revisa read-only (mesmo prompt/skills do dev); roteia internamente.
+- ✅ Prévias por etapa + spinner.
+- ✅ Verdict publicado no PR como `argos[bot]`.
+- ✅ Decisor (Clef/Workers AI) no gate de merge: `approve` **e** `auto_merge`
+  (hoje `≥0.85` e regressão `≤0.15`) → auto-merge (squash). Os pesos vão no
+  comentário (calibração manual); Clef fora/sem credencial → segura p/ humano.
+- ⬜ Erodos (fix no mesmo flow).
