@@ -56,5 +56,14 @@ export async function runClef(input: {
     body: { model, state: input.state, questions: input.questions },
   })) as ClefEnvelope;
 
+  // O envelope da Workers AI pode vir com HTTP 200 e success=false (ex.: erro de
+  // modelo). Sem validar, a leitura de `result.answers` estoura com um TypeError
+  // genérico; validando, o motivo real (errors[].message) chega ao chamador.
+  if (!res.success || !res.result) {
+    const message =
+      res.errors?.map((e) => e.message).filter(Boolean).join("; ") || "resposta sem detalhe de erro";
+    throw new Error(`Clef retornou falha: ${message}`);
+  }
+
   return res.result.answers;
 }

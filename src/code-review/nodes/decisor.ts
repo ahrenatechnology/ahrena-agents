@@ -79,6 +79,21 @@ function decide(answers: ClefAnswers): string {
 }
 
 /**
+ * Higieniza o motivo de falha antes de expô-lo em `state.decision` (que o
+ * workflow imprime no comentário do PR): remove URLs — a rota do SDK carrega o
+ * account id — e limita o tamanho a uma linha curta.
+ */
+function sanitizeReason(raw: string): string {
+  const MAX = 200;
+  const oneLine = raw
+    .split("\n")[0]
+    .replace(/https?:\/\/\S+/gi, "[url]")
+    .replace(/\/accounts\/[0-9a-f]{32}/gi, "/accounts/[id]")
+    .trim();
+  return oneLine.length > MAX ? `${oneLine.slice(0, MAX - 1)}…` : oneLine;
+}
+
+/**
  * Nó do Decisor: pergunta ao Clef (modelo de decisão, Workers AI) e aplica os
  * limiares — o lado probabilístico do merge gate. É report-only: escreve a
  * decisão em `state.decision`; quem mergeia é o workflow (gate determinístico).
@@ -89,7 +104,7 @@ export async function decisor(state: ReviewStateT): Promise<Partial<ReviewStateT
     const answers = await runClef({ state: buildDossier(state), questions: QUESTIONS });
     return { decision: decide(answers) };
   } catch (error) {
-    const reason = (error instanceof Error ? error.message : String(error)).split("\n")[0];
+    const reason = sanitizeReason(error instanceof Error ? error.message : String(error));
     return { decision: `hold_for_human: Decisor indisponível (${reason})` };
   }
 }
