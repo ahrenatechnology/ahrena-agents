@@ -67,12 +67,12 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
 
-      # approve → fecha sozinho (squash). request_changes → Erodos no mesmo flow (próximo).
-      # Por ora o gate é só o verdict (determinístico); o Decisor (Clef) entra
-      # como report (comentário). Depois de calibrar, dá para exigir também
-      # `startsWith(steps.argos.outputs.decision, 'auto_merge')`.
-      - name: Auto-merge no approve
-        if: steps.argos.outputs.verdict == 'approve'
+      # Gate = determinístico (verdict) + probabilístico (Clef): fecha sozinho só
+      # quando o Argos aprova E o Decisor diz auto_merge (hoje: auto_merge ≥ 0.85
+      # e regressão ≤ 0.15). Clef fora/sem credencial → decision=hold_for_human →
+      # não mergeia, segura para humano (falha segura). request_changes → Erodos (futuro).
+      - name: Auto-merge no approve + baixo risco
+        if: steps.argos.outputs.verdict == 'approve' && startsWith(steps.argos.outputs.decision, 'auto_merge')
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch
