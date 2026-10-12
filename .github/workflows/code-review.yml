@@ -40,6 +40,9 @@ jobs:
         id: argos
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Decisor (Clef / Workers AI): account id é variável, token é secret.
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           npx tsx src/cli.ts \
             --pr "${{ github.event.pull_request.number }}" \
@@ -47,10 +50,13 @@ jobs:
             > review.json 2> review.log || true
           cat review.log >&2
           verdict="$(jq -r '.verdict // "comment"' review.json)"
+          decision="$(jq -r '.decision // "(sem decisor)"' review.json)"
           echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
           {
             echo "<!-- ahrena-review -->"
             echo "**Verdict:** \`$verdict\`"
+            echo "**Decisor (Clef):** \`$decision\`"
             echo
             jq -r '.summary // "(sem review)"' review.json
           } > comment.md
@@ -62,6 +68,9 @@ jobs:
         run: gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
 
       # approve → fecha sozinho (squash). request_changes → Erodos no mesmo flow (próximo).
+      # Por ora o gate é só o verdict (determinístico); o Decisor (Clef) entra
+      # como report (comentário). Depois de calibrar, dá para exigir também
+      # `startsWith(steps.argos.outputs.decision, 'auto_merge')`.
       - name: Auto-merge no approve
         if: steps.argos.outputs.verdict == 'approve'
         env:
