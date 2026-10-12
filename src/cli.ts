@@ -10,6 +10,13 @@ try {
   // sem .env: segue com o ambiente como está
 }
 
+/** Lê um número de CLI/env; vazio ou inválido → undefined (o nó usa o default). */
+function numOpt(raw: string | undefined): number | undefined {
+  if (raw == null || raw === "") return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
@@ -17,6 +24,9 @@ async function main(): Promise<void> {
       changed: { type: "string" },
       "repo-path": { type: "string" },
       model: { type: "string" },
+      "clef-model": { type: "string" },
+      "auto-merge-min": { type: "string" },
+      "regression-max": { type: "string" },
     },
   });
 
@@ -25,8 +35,11 @@ async function main(): Promise<void> {
     pr: values.pr ? Number(values.pr) : 0,
     changed: values.changed,
     repoPath: values["repo-path"] ?? process.cwd(),
-    // Vazio → o agente aplica o default do Argos.
+    // Vazio → o nó aplica o default da plataforma (flag vence env).
     model: values.model ?? process.env.ARGOS_MODEL,
+    clefModel: values["clef-model"] ?? process.env.CLEF_MODEL,
+    autoMergeMin: numOpt(values["auto-merge-min"] ?? process.env.DECISOR_AUTO_MERGE_MIN),
+    regressionMax: numOpt(values["regression-max"] ?? process.env.DECISOR_REGRESSION_MAX),
   };
 
   // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.

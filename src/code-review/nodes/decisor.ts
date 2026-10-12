@@ -27,9 +27,19 @@ const QUESTIONS: Record<string, ClefQuestion> = {
   },
 };
 
-/** Limiares do gate probabilístico. Primeiro corte — calibrar com dados reais. */
-const AUTO_MERGE_MIN = 0.85; // prob. mínima de auto_merge
-const REGRESSION_MAX = 0.15; // prob. máxima de regressão tolerada
+/**
+ * Defaults da PLATAFORMA para os limiares do gate probabilístico — os valores
+ * que a gente já testou. O cliente sobrescreve por parâmetro (--auto-merge-min
+ * / --regression-max, ou env DECISOR_*). Primeiro corte; calibrar no uso real.
+ */
+const DEFAULT_AUTO_MERGE_MIN = 0.85; // prob. mínima de auto_merge
+const DEFAULT_REGRESSION_MAX = 0.15; // prob. máxima de regressão tolerada
+
+/** Prende uma probabilidade em [0,1]; fora disso (ou vazio) cai no default. */
+function clampProb(value: number | undefined, fallback: number): number {
+  if (value == null || !Number.isFinite(value)) return fallback;
+  return Math.min(1, Math.max(0, value));
+}
 
 /** Estatísticas do diff, um sinal forte de risco. Null se não der para medir. */
 function diffStats(repoPath: string, changed?: string) {
@@ -61,8 +71,8 @@ function buildDossier(state: ReviewStateT) {
   };
 }
 
-/** Aplica os limiares sobre as probabilidades do Clef e resume a decisão. */
-function decide(answers: ClefAnswers): string {
+/** Aplica os limiares (parametrizáveis) sobre as probabilidades e resume a decisão. */
+function decide(answers: ClefAnswers, autoMergeMin: number, regressionMax: number): string {
   const merge = answers.merge;
   const regression = answers.regression;
   const risk = answers.risk;
@@ -74,7 +84,7 @@ function decide(answers: ClefAnswers): string {
   let riskLabel = "?";
   if (risk && risk.type === "score") riskLabel = risk.legend[String(Math.round(risk.score))] ?? "?";
 
-  const head = pAuto >= AUTO_MERGE_MIN && pReg <= REGRESSION_MAX ? "auto_merge" : "hold_for_human";
+  const head = pAuto >= autoMergeMin && pReg <= regressionMax ? "auto_merge" : "hold_for_human";
   return `${head}: risco=${riskLabel}, auto_merge=${pAuto.toFixed(2)}, regressão=${pReg.toFixed(2)}`;
 }
 
@@ -101,8 +111,14 @@ function sanitizeReason(raw: string): string {
  */
 export async function decisor(state: ReviewStateT): Promise<Partial<ReviewStateT>> {
   try {
-    const answers = await runClef({ state: buildDossier(state), questions: QUESTIONS });
-    return { decision: decide(answers) };
+    const autoMergeMin = clampProb(state.autoMergeMin, DEFAULT_AUTO_MERGE_MIN);
+    const regressionMax = clampProb(state.regressionMax, DEFAULT_REGRESSION_MAX);
+    const answers = await runClef({
+      state: buildDossier(state),
+      questions: QUESTIONS,
+      model: state.clefModel,
+    });
+    return { decision: decide(answers, autoMergeMin, regressionMax) };
   } catch (error) {
     const reason = sanitizeReason(error instanceof Error ? error.message : String(error));
     return { decision: `hold_for_human: Decisor indisponível (${reason})` };
