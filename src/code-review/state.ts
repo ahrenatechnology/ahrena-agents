@@ -1,4 +1,5 @@
 import { Annotation } from "@langchain/langgraph";
+import type { Finding } from "./findings";
 
 export type Verdict = "approve" | "request_changes" | "comment";
 
@@ -17,8 +18,12 @@ export const ReviewState = Annotation.Root({
   autoMergeMin: Annotation<number>(),
   /** Limiar do gate: prob. máxima de regressão tolerada; vazio → default. */
   regressionMax: Annotation<number>(),
+  /** Pré-gate: máximo de warnings que ainda vai ao Clef; vazio → default (2). */
+  maxWarnings: Annotation<number>(),
   /** Verdict do Argos, extraído do texto da review. */
   verdict: Annotation<Verdict>(),
+  /** Achados estruturados do Argos (alicerce do pré-gate e dos follow-ups). */
+  findings: Annotation<Finding[]>(),
   /** Texto da review conduzida pelo Argos. */
   summary: Annotation<string>(),
   /** Decisão do passo seguinte (Erodos aplicou / Decisor avaliou). */

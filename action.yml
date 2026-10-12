@@ -27,6 +27,9 @@ inputs:
   regression-max:
     description: "Limiar do gate: prob. máxima de regressão tolerada (0–1). Vazio → default (0.15)."
     required: false
+  max-warnings:
+    description: "Pré-gate: máximo de warnings que ainda vai ao Clef; acima disso delega. Vazio → default (2)."
+    required: false
 
 runs:
   using: "docker"
@@ -40,6 +43,7 @@ runs:
     CLEF_MODEL: ${{ inputs.clef-model }}
     DECISOR_AUTO_MERGE_MIN: ${{ inputs.auto-merge-min }}
     DECISOR_REGRESSION_MAX: ${{ inputs.regression-max }}
+    DECISOR_MAX_WARNINGS: ${{ inputs.max-warnings }}
   args:
     - "--pr"
     - ${{ github.event.pull_request.number }}

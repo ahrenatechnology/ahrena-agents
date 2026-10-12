@@ -27,6 +27,7 @@ async function main(): Promise<void> {
       "clef-model": { type: "string" },
       "auto-merge-min": { type: "string" },
       "regression-max": { type: "string" },
+      "max-warnings": { type: "string" },
     },
   });
 
@@ -40,6 +41,7 @@ async function main(): Promise<void> {
     clefModel: values["clef-model"] ?? process.env.CLEF_MODEL,
     autoMergeMin: numOpt(values["auto-merge-min"] ?? process.env.DECISOR_AUTO_MERGE_MIN),
     regressionMax: numOpt(values["regression-max"] ?? process.env.DECISOR_REGRESSION_MAX),
+    maxWarnings: numOpt(values["max-warnings"] ?? process.env.DECISOR_MAX_WARNINGS),
   };
 
   // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.

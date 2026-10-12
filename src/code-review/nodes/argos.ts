@@ -1,25 +1,45 @@
 import type { ReviewStateT } from "../state";
 import { runArgos } from "../agent";
 import { parseVerdict } from "../verdict";
+import { parseFindings } from "../findings";
 
 /**
  * Nó do Argos: invoca o orquestrador do framework (que roteia, roda as lenses e
- * sintetiza) e extrai o verdict do texto. Em falha (credencial/agente/tempo),
- * degrada para "comment" com o motivo.
+ * sintetiza) e extrai do texto DUAS saídas de máquina: o verdict e a LISTA de
+ * achados estruturados (alicerce do pré-gate e dos follow-ups). Em falha
+ * (credencial/agente/tempo), degrada para "comment" sem achados.
  */
 export async function argos(state: ReviewStateT): Promise<Partial<ReviewStateT>> {
   try {
     const prompt = [
       `Conduza a review do PR #${state.pr} (mudança: ${state.changed ?? "não informada"}).`,
-      "Narre o parecer como preferir, mas ENCERRE a resposta com uma linha final, sozinha,",
-      "exatamente neste formato — token em inglês, minúsculo (é o contrato de máquina do pipeline):",
-      "`Verdict: approve` (nada bloqueia o merge), `Verdict: request_changes` (há bloqueio) ou",
-      "`Verdict: comment` (só observação, sem decisão). Ressalvas não-bloqueantes ainda são `approve`.",
+      "",
+      "Narre o parecer como preferir, mas ENCERRE com DOIS artefatos de máquina, nesta ordem:",
+      "",
+      "1) Uma linha de verdict, sozinha, token em inglês minúsculo:",
+      "   `Verdict: approve` (nada bloqueia), `Verdict: request_changes` (há bloqueio) ou",
+      "   `Verdict: comment` (só observação). Ressalvas não-bloqueantes ainda são `approve`.",
+      "",
+      "2) A LISTA de achados, num bloco cercado começando com ```findings e terminando com ```,",
+      "   contendo um array JSON (pode ser `[]`). Um objeto por achado, campos:",
+      '   - "severity": "blocking" (impede o merge) ou "warning" (não impede);',
+      '   - "title": frase curta do problema;',
+      '   - "file", "line": onde (quando aplicável);',
+      '   - "kind": "como" (forma — comportamento IGUAL, dá pra auto-corrigir) ou',
+      '     "oque" (intenção — regra de negócio/escopo/contrato; precisa de humano);',
+      '   - "rule": a regra do framework, se houver.',
+      "   Liste TODOS os achados não-triviais, inclusive os não-bloqueantes (warnings).",
+      "   Exemplo de uma linha: " +
+        '{"severity":"warning","title":"nome pouco claro","file":"src/x.ts","line":12,"kind":"como"}',
     ].join("\n");
     const text = await runArgos({ cwd: state.repoPath, prompt, model: state.model });
-    return { verdict: parseVerdict(text), summary: text || "(Argos não devolveu texto)" };
+    return {
+      verdict: parseVerdict(text),
+      findings: parseFindings(text),
+      summary: text || "(Argos não devolveu texto)",
+    };
   } catch (error) {
     const reason = (error instanceof Error ? error.message : String(error)).split("\n")[0];
-    return { verdict: "comment", summary: `Argos não rodou: ${reason}` };
+    return { verdict: "comment", findings: [], summary: `Argos não rodou: ${reason}` };
   }
 }

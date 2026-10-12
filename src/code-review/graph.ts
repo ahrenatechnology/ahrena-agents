@@ -3,16 +3,30 @@ import { ReviewState, type ReviewStateT } from "./state";
 import { argos } from "./nodes/argos";
 import { erodos } from "./nodes/erodos";
 import { decisor } from "./nodes/decisor";
+import { countFindings } from "./findings";
+
+/** Pré-gate: default da plataforma do máximo de warnings que ainda vai ao Clef. */
+const DEFAULT_MAX_WARNINGS = 2; // 3+ warnings → delega, sem gastar o Clef
 
 /**
- * Roteia pelo verdict que o Argos sintetizou:
- *   approve          → Decisor (merge decision)
- *   request_changes  → Erodos (fix step, run separado)
- *   comment/outros   → fim (deixa para uma pessoa)
+ * PRÉ-GATE — roteamento determinístico e barato, antes de gastar o Clef:
+ *   bloqueante (ou request_changes)        → Erodos (rejeita + delega o fix)
+ *   approve com > maxWarnings (ex.: 3+)     → Erodos (rejeita + delega o fix)
+ *   approve com 0–maxWarnings warnings      → Decisor (zona cinza; Clef decide)
+ *   comment/outros                          → fim (deixa para uma pessoa)
+ *
+ * Sem achados estruturados (lista vazia), as contagens são 0 e o roteamento cai
+ * no antigo, só por verdict — a feature é aditiva e falha segura.
  */
 function afterArgos(state: ReviewStateT): "decisor" | "erodos" | typeof END {
-  if (state.verdict === "approve") return "decisor";
-  if (state.verdict === "request_changes") return "erodos";
+  const { blocking, warning } = countFindings(state.findings ?? []);
+  // Clampa como os limiares de probabilidade: inteiro não-negativo. Um valor cru
+  // negativo/fracionário poderia desligar o auto-merge silenciosamente.
+  const raw = Number.isFinite(state.maxWarnings) ? (state.maxWarnings as number) : DEFAULT_MAX_WARNINGS;
+  const maxWarnings = Math.max(0, Math.floor(raw));
+
+  if (blocking > 0 || state.verdict === "request_changes") return "erodos";
+  if (state.verdict === "approve") return warning > maxWarnings ? "erodos" : "decisor";
   return END;
 }
 
