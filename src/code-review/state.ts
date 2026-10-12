@@ -11,6 +11,12 @@ export const ReviewState = Annotation.Root({
   changed: Annotation<string>(),
   /** Modelo a usar no Argos; vazio → default do agente. */
   model: Annotation<string>(),
+  /** Modelo de decisão (Clef); vazio → default da plataforma. */
+  clefModel: Annotation<string>(),
+  /** Limiar do gate: prob. mínima de auto_merge; vazio → default. */
+  autoMergeMin: Annotation<number>(),
+  /** Limiar do gate: prob. máxima de regressão tolerada; vazio → default. */
+  regressionMax: Annotation<number>(),
   /** Verdict do Argos, extraído do texto da review. */
   verdict: Annotation<Verdict>(),
   /** Texto da review conduzida pelo Argos. */

@@ -128,9 +128,17 @@ secret `CLAUDE_CODE_OAUTH_TOKEN`.
 |---|---|---|
 | `CLAUDE_CODE_OAUTH_TOKEN` | sim (ou `ANTHROPIC_API_KEY`) | token do Claude Code |
 | `GH_TOKEN` | no CI | token do GitHub (usado pelo `gh`, passo futuro de publicar o verdict) |
+| `CLOUDFLARE_ACCOUNT_ID` | p/ o Decisor | account id da Cloudflare (Workers AI) |
+| `CLOUDFLARE_API_TOKEN` | p/ o Decisor | API token da Cloudflare, escopo Workers AI |
 | `ARGOS_MODEL` | não | modelo do Argos; default `claude-opus-4-8`. Equivale a `--model` |
+| `CLEF_MODEL` | não | modelo do Decisor; default `clef` (ex.: `clef-flash`). Equivale a `--clef-model` |
+| `DECISOR_AUTO_MERGE_MIN` | não | limiar: prob. mínima de auto_merge (0–1); default `0.85`. Equivale a `--auto-merge-min` |
+| `DECISOR_REGRESSION_MAX` | não | limiar: prob. máxima de regressão (0–1); default `0.15`. Equivale a `--regression-max` |
 
-CLI: `ahrena-review --pr <n> [--changed <base>...<head>] [--model <id>]`.
+Todo valor/intervalo tem **default da plataforma** (o já testado) e pode ser
+**sobrescrito** por flag (que vence a env). Na Action, cada um é um `input`.
+
+CLI: `ahrena-review --pr <n> [--changed <base>...<head>] [--model <id>] [--clef-model <id>] [--auto-merge-min <0–1>] [--regression-max <0–1>]`.
 
 ---
 
