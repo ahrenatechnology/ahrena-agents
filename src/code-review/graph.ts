@@ -20,7 +20,10 @@ const DEFAULT_MAX_WARNINGS = 2; // 3+ warnings → delega, sem gastar o Clef
  */
 function afterArgos(state: ReviewStateT): "decisor" | "erodos" | typeof END {
   const { blocking, warning } = countFindings(state.findings ?? []);
-  const maxWarnings = Number.isFinite(state.maxWarnings) ? (state.maxWarnings as number) : DEFAULT_MAX_WARNINGS;
+  // Clampa como os limiares de probabilidade: inteiro não-negativo. Um valor cru
+  // negativo/fracionário poderia desligar o auto-merge silenciosamente.
+  const raw = Number.isFinite(state.maxWarnings) ? (state.maxWarnings as number) : DEFAULT_MAX_WARNINGS;
+  const maxWarnings = Math.max(0, Math.floor(raw));
 
   if (blocking > 0 || state.verdict === "request_changes") return "erodos";
   if (state.verdict === "approve") return warning > maxWarnings ? "erodos" : "decisor";
