@@ -145,7 +145,9 @@ variável de ambiente → default. Na GitHub Action, cada um é um `input`.
 | Flag (CLI/npx) | Env (CI/Docker) | Action input | Default | O que controla |
 |---|---|---|---|---|
 | `--model` | `ARGOS_MODEL` | `argos-model` | `claude-opus-4-8` | modelo do **Argos** (quem revisa) |
-| `--clef-model` | `CLEF_MODEL` | `clef-model` | `clef` | modelo do **Decisor** (ex.: `clef-flash`, mais rápido) |
+| `--decisor-provider` | `DECISOR_PROVIDER` | `decisor-provider` | `cloudflare` | onde o **Decisor** roda: `cloudflare` (Clef nativo) ou `bedrock` (AWS) |
+| `--clef-model` | `CLEF_MODEL` | `clef-model` | `clef` | modelo do Decisor **no Cloudflare** (ex.: `clef-flash`) |
+| `--bedrock-model` | `BEDROCK_MODEL` | `bedrock-model` | — | id do modelo **no Bedrock** (quando `decisor-provider=bedrock`) |
 | `--auto-merge-min` | `DECISOR_AUTO_MERGE_MIN` | `auto-merge-min` | `0.85` | prob. **mínima** de `auto_merge` p/ fechar sozinho (0–1) |
 | `--regression-max` | `DECISOR_REGRESSION_MAX` | `regression-max` | `0.15` | prob. **máxima** de regressão tolerada (0–1) |
 | `--max-warnings` | `DECISOR_MAX_WARNINGS` | `max-warnings` | `2` | máx. de **warnings** que ainda vai ao Clef; acima disso o **pré-gate** delega (ex.: `2` ⇒ 3+ warnings = delega) |
@@ -177,8 +179,35 @@ Forma completa da CLI:
 
 ```
 ahrena-review --pr <n> [--changed <base>...<head>]
-  [--model <id>] [--clef-model <id>]
+  [--model <id>] [--decisor-provider cloudflare|bedrock]
+  [--clef-model <id>] [--bedrock-model <id>]
   [--auto-merge-min <0–1>] [--regression-max <0–1>] [--max-warnings <n>]
+```
+
+### Provider do Decisor: Cloudflare ou Bedrock
+
+O Decisor é **multi-provedor** — o produto roda onde o cliente tem infra:
+
+- **`cloudflare`** (default): usa o **Clef** nativo (Workers AI), o modelo de
+  decisão calibrado. Mais barato e sem infra própria. Credenciais:
+  `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`.
+- **`bedrock`**: para quem quer tudo na **AWS** (ex.: um cliente que já usa
+  Bedrock). Como o Bedrock **não** tem o Clef nativo, o Decisor usa um **modelo
+  on-demand** do Bedrock (Converse API) e pede a decisão em JSON — é o caminho
+  **mais barato na AWS** (paga por chamada, sem GPU ligada parada). É uma
+  **aproximação** do Clef (não as probabilidades calibradas), adequada a volume
+  baixo + calibragem manual. Auth: cadeia padrão da AWS (`AWS_REGION` +
+  credenciais por env/role — OIDC no job é o recomendado). `decide()` e o resto
+  do fluxo **não mudam**: o adapter devolve a mesma forma de respostas.
+
+```yaml
+# Action no Bedrock (credenciais via OIDC/configure-aws-credentials no job)
+- uses: ahrenatechnology/ahrena-agents@v1
+  with:
+    claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    decisor-provider: "bedrock"
+    bedrock-model: "<id-do-modelo-no-bedrock>"
+    aws-region: "us-east-1"
 ```
 
 ---

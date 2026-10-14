@@ -19,7 +19,25 @@ inputs:
     description: "API token da Cloudflare com escopo Workers AI, para o Decisor."
     required: false
   clef-model:
-    description: "Modelo de decisão. Vazio → default da plataforma (clef). Ex.: clef-flash."
+    description: "Modelo de decisão (provider cloudflare). Vazio → default (clef). Ex.: clef-flash."
+    required: false
+  decisor-provider:
+    description: "Provider do Decisor: cloudflare (default) ou bedrock."
+    required: false
+  bedrock-model:
+    description: "Id do modelo Bedrock (quando decisor-provider=bedrock). Ex.: um Claude no Bedrock."
+    required: false
+  aws-region:
+    description: "Região AWS do Bedrock (quando decisor-provider=bedrock)."
+    required: false
+  aws-access-key-id:
+    description: "AWS access key id p/ o Bedrock (ou use OIDC/role no job). Opcional."
+    required: false
+  aws-secret-access-key:
+    description: "AWS secret access key p/ o Bedrock. Opcional."
+    required: false
+  aws-session-token:
+    description: "AWS session token (credenciais temporárias). Opcional."
     required: false
   auto-merge-min:
     description: "Limiar do gate: prob. mínima de auto_merge (0–1). Vazio → default (0.85)."
@@ -41,6 +59,12 @@ runs:
     CLOUDFLARE_ACCOUNT_ID: ${{ inputs.cloudflare-account-id }}
     CLOUDFLARE_API_TOKEN: ${{ inputs.cloudflare-api-token }}
     CLEF_MODEL: ${{ inputs.clef-model }}
+    DECISOR_PROVIDER: ${{ inputs.decisor-provider }}
+    BEDROCK_MODEL: ${{ inputs.bedrock-model }}
+    AWS_REGION: ${{ inputs.aws-region }}
+    AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+    AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+    AWS_SESSION_TOKEN: ${{ inputs.aws-session-token }}
     DECISOR_AUTO_MERGE_MIN: ${{ inputs.auto-merge-min }}
     DECISOR_REGRESSION_MAX: ${{ inputs.regression-max }}
     DECISOR_MAX_WARNINGS: ${{ inputs.max-warnings }}
