@@ -1,0 +1,24 @@
+# Exemplo: o que UM repositório consumidor coloca em .github/workflows/.
+# Toda a lógica (revisar, comentar, gate, auto-merge) vive no reusable workflow
+# do Ahrena — aqui só se chama e passam-se os secrets.
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    uses: ahrenatechnology/ahrena-agents/.github/workflows/review.yml@v1
+    permissions:
+      contents: write
+      pull-requests: write
+    secrets:
+      claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      cloudflare-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    # Opcional: afrouxar/apertar sem tocar no código.
+    # with:
+    #   auto-merge-min: "0.80"
+    #   max-warnings: "3"
+    #   gate: "verdict"   # fecha só com Argos approve (sem Clef)

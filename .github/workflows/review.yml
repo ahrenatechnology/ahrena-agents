@@ -1,0 +1,123 @@
+name: Ahrena Code Review (reusable)
+
+# Pipeline HERDÁVEL do produto. Um repositório consome em ~5 linhas:
+#
+#   jobs:
+#     review:
+#       uses: ahrenatechnology/ahrena-agents/.github/workflows/review.yml@v1
+#       permissions: { contents: write, pull-requests: write }
+#       secrets:
+#         claude-token:          ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+#         cloudflare-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+#         cloudflare-api-token:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
+#
+# Um repo DevOps central pode re-exportar isto, ou a org pode aplicá-lo como
+# "required workflow" — aí os repos herdam sem adicionar arquivo nenhum.
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Imagem do runner (default: v1 publicada no ghcr)."
+        type: string
+        required: false
+        default: "ghcr.io/ahrenatechnology/ahrena-agents:v1"
+      gate:
+        description: "Gate de auto-merge: 'decisor' (Argos approve + Clef auto_merge) ou 'verdict' (só Argos approve)."
+        type: string
+        required: false
+        default: "decisor"
+      argos-model: { type: string, required: false, default: "" }
+      decisor-provider: { type: string, required: false, default: "" }
+      clef-model: { type: string, required: false, default: "" }
+      bedrock-model: { type: string, required: false, default: "" }
+      aws-region: { type: string, required: false, default: "" }
+      auto-merge-min: { type: string, required: false, default: "" }
+      regression-max: { type: string, required: false, default: "" }
+      max-warnings: { type: string, required: false, default: "" }
+    secrets:
+      claude-token: { required: true }
+      cloudflare-account-id: { required: false }
+      cloudflare-api-token: { required: false }
+      aws-access-key-id: { required: false }
+      aws-secret-access-key: { required: false }
+      aws-session-token: { required: false }
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ahrena-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Review (Argos + Decisor)
+        id: review
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-token }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.cloudflare-account-id }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.cloudflare-api-token }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ secrets.aws-session-token }}
+          AWS_REGION: ${{ inputs.aws-region }}
+          ARGOS_MODEL: ${{ inputs.argos-model }}
+          DECISOR_PROVIDER: ${{ inputs.decisor-provider }}
+          CLEF_MODEL: ${{ inputs.clef-model }}
+          BEDROCK_MODEL: ${{ inputs.bedrock-model }}
+          DECISOR_AUTO_MERGE_MIN: ${{ inputs.auto-merge-min }}
+          DECISOR_REGRESSION_MAX: ${{ inputs.regression-max }}
+          DECISOR_MAX_WARNINGS: ${{ inputs.max-warnings }}
+        run: |
+          docker run --rm \
+            -e CLAUDE_CODE_OAUTH_TOKEN -e CLOUDFLARE_ACCOUNT_ID -e CLOUDFLARE_API_TOKEN \
+            -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION \
+            -e ARGOS_MODEL -e DECISOR_PROVIDER -e CLEF_MODEL -e BEDROCK_MODEL \
+            -e DECISOR_AUTO_MERGE_MIN -e DECISOR_REGRESSION_MAX -e DECISOR_MAX_WARNINGS \
+            -v "$PWD:/repo" -w /repo \
+            "${{ inputs.image }}" \
+            --pr "${{ github.event.pull_request.number }}" \
+            --changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" \
+            > review.json 2> review.log || true
+          cat review.log >&2
+          echo "verdict=$(jq -r '.verdict // "comment"' review.json)" >> "$GITHUB_OUTPUT"
+          echo "decision=$(jq -r '.decision // ""' review.json)" >> "$GITHUB_OUTPUT"
+          comment="$(jq -r '.comment // empty' review.json)"
+          if [ -n "$comment" ]; then
+            printf '%s\n' "$comment" > comment.md
+          else
+            {
+              echo "<!-- ahrena-review -->"
+              echo "**Verdict:** \`$(jq -r '.verdict // "comment"' review.json)\`"
+              echo
+              jq -r '.summary // "(sem review)"' review.json
+            } > comment.md
+          fi
+
+      - name: Comenta o verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
+
+      # Gate 'decisor' (default): Argos approve E Clef auto_merge (risco baixo).
+      - name: Auto-merge (approve + risco baixo)
+        if: inputs.gate != 'verdict' && steps.review.outputs.verdict == 'approve' && startsWith(steps.review.outputs.decision, 'auto_merge')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch
+
+      # Gate 'verdict': só o Argos approve (sem Clef). Para quem não usa o Decisor.
+      - name: Auto-merge (só approve)
+        if: inputs.gate == 'verdict' && steps.review.outputs.verdict == 'approve'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch

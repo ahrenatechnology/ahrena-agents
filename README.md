@@ -114,11 +114,47 @@ jobs:
 ```
 
 A Action ([`action.yml`](action.yml)) é um wrapper Docker que roda a imagem
-publicada e deriva `--pr`/`--changed` do contexto do PR. O cliente só precisa do
-secret `CLAUDE_CODE_OAUTH_TOKEN`.
+publicada e deriva `--pr`/`--changed` do contexto do PR. A Action **só revisa e
+comenta** — o gate e o auto-merge ficam no workflow. Para o fluxo completo
+(revisar + comentar + gate + fechar sozinho) **sem copiar YAML**, use o pipeline
+herdável abaixo.
 
 > A Action aponta para `ghcr.io/ahrenatechnology/ahrena-agents:v1` — **a imagem
 > precisa estar publicada** (passo 2) e o pacote acessível para o cliente puxar.
+
+### 4. Pipeline herdável (reusable workflow) — o jeito "produto"
+
+Para um cliente com dezenas de repositórios, não se copia YAML repo a repo. O
+Ahrena publica um **reusable workflow** ([`.github/workflows/review.yml`](.github/workflows/review.yml))
+com o fluxo inteiro — revisar, comentar, gate e **auto-merge**. Cada repositório
+consome em ~5 linhas (veja [`examples/consumer-code-review.yml`](examples/consumer-code-review.yml)):
+
+```yaml
+name: Code Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  review:
+    uses: ahrenatechnology/ahrena-agents/.github/workflows/review.yml@v1
+    permissions: { contents: write, pull-requests: write }
+    secrets:
+      claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      cloudflare-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+```
+
+Escala de três formas, da mais explícita à mais automática:
+- **Caller por repo:** cada repo tem o arquivo de ~5 linhas acima.
+- **Repo DevOps central:** um repositório re-exporta/padroniza o caller, e os
+  demais herdam dele.
+- **Required workflow da org:** aplica o caller a todos os repos da organização
+  **sem arquivo nenhum** por repo.
+
+Ajustes (todos opcionais) vão em `with:` — `auto-merge-min`, `regression-max`,
+`max-warnings`, `argos-model`, `decisor-provider` (`cloudflare`|`bedrock`),
+`clef-model`/`bedrock-model`, e `gate` (`decisor` padrão, ou `verdict` para
+fechar só com o approve do Argos, sem Clef).
 
 ---
 
