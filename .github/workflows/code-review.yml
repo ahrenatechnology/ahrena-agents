@@ -53,13 +53,19 @@ jobs:
           decision="$(jq -r '.decision // "(sem decisor)"' review.json)"
           echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
           echo "decision=$decision" >> "$GITHUB_OUTPUT"
-          {
-            echo "<!-- ahrena-review -->"
-            echo "**Verdict:** \`$verdict\`"
-            echo "**Decisor (Clef):** \`$decision\`"
-            echo
-            jq -r '.summary // "(sem review)"' review.json
-          } > comment.md
+          # Comentário já renderizado pelo runtime (tabela de achados); fallback simples.
+          comment="$(jq -r '.comment // empty' review.json)"
+          if [ -n "$comment" ]; then
+            printf '%s\n' "$comment" > comment.md
+          else
+            {
+              echo "<!-- ahrena-review -->"
+              echo "**Verdict:** \`$verdict\`"
+              echo "**Decisor (Clef):** \`$decision\`"
+              echo
+              jq -r '.summary // "(sem review)"' review.json
+            } > comment.md
+          fi
 
       # Posta COM o token do App → o comentário aparece como argos[bot].
       - name: Posta o verdict como argos[bot]
