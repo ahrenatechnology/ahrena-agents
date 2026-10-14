@@ -29,6 +29,24 @@ pipeline, e a review apenas consome esses resultados. Ele opera em **modo
 read-only** (lê e julga, nunca altera o código) e herda prompts e regras direto do
 framework, mantendo uma única fonte de verdade entre todos os agentes.
 
+### O que o Argos revisa — quatro pilares
+
+As lentes vêm do [`ahrena-framework`](https://github.com/ahrenatechnology/ahrena-framework)
+e um roteador seleciona, por PR, só as que os arquivos tocados pedem. Cada achado
+cita **arquivo, linha e condição**:
+
+- **Quality** — fundamentos de engenharia (SOLID, KISS, YAGNI, clean code, DDD,
+  fronteiras de módulo) e o que é específico da linguagem (TypeScript, Python, Go,
+  Rust).
+- **Security** — seis disciplinas: segredos, cadeia de suprimentos, input não
+  confiável, controle de acesso, dado sensível e uso de modelos/agentes.
+- **Reliability** — I/O sem timeout, retry sem backoff ou limite, efeito não
+  idempotente em caminho que repete (retry/webhook), erro engolido, vazamento de
+  recurso, dependência sem degradação graciosa e migration destrutiva sem reversão.
+- **Observability** — falha sem log acionável, operação crítica sem métrica ou
+  evento, log sem contexto (o quê/onde) e borda de serviço sem id de correlação —
+  e **nunca** sugere logar dado sensível (cruza com a lente de dado sensível).
+
 Orquestração em LangGraph + Claude Agent SDK.
 
 ## Pré-requisito: token do Claude
