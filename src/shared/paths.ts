@@ -10,14 +10,17 @@ const ENGINEERING = join(FRAMEWORK, "engineering");
  * Plugins do ahrena-framework que o Argos orquestrador precisa carregar: o
  * próprio `code-review` (o orquestrador), o `quality` (router + publicação do
  * verdict + landing + docs), as regras (`fundamentals`), e as lenses
- * (`security`, as linguagens e `foundation`). As lenses que disparam são
- * decididas pelo `routes.json`, que referencia skills nesses plugins.
+ * (`security`, `reliability`, `observability`, as linguagens e `foundation`).
+ * As lenses que disparam são decididas pelo `routes.json`, que referencia
+ * skills nesses plugins.
  */
 export const PLUGINS = [
   join(ENGINEERING, "code-review"),
   join(ENGINEERING, "quality"),
   join(ENGINEERING, "fundamentals"),
   join(ENGINEERING, "security"),
+  join(ENGINEERING, "reliability"),
+  join(ENGINEERING, "observability"),
   join(ENGINEERING, "typescript"),
   join(ENGINEERING, "python"),
   join(ENGINEERING, "go"),
