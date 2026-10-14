@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import { buildGraph } from "./code-review/graph";
 import { renderPreview } from "./code-review/preview";
+import { renderComment } from "./code-review/comment";
 import type { ReviewStateT } from "./code-review/state";
 
 // Carrega CLAUDE_CODE_OAUTH_TOKEN (e afins) de um .env local, se houver.
@@ -57,6 +58,10 @@ async function main(): Promise<void> {
       Object.assign(final, patch);
     }
   }
+
+  // O comentário renderizado (tabela de achados + parecer) vai no mesmo JSON,
+  // pra o workflow só postar — a apresentação mora no runtime.
+  final.comment = renderComment(final);
 
   console.log(JSON.stringify(final, null, 2));
 }

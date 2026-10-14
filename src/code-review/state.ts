@@ -32,6 +32,8 @@ export const ReviewState = Annotation.Root({
   summary: Annotation<string>(),
   /** Decisão do passo seguinte (Erodos aplicou / Decisor avaliou). */
   decision: Annotation<string>(),
+  /** Comentário do PR já renderizado (header + tabela de achados + parecer). */
+  comment: Annotation<string>(),
   /** Rodada do loop review↔fix (guard). */
   round: Annotation<number>(),
 });
