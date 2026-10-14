@@ -12,8 +12,12 @@ export const ReviewState = Annotation.Root({
   changed: Annotation<string>(),
   /** Modelo a usar no Argos; vazio → default do agente. */
   model: Annotation<string>(),
+  /** Provider do Decisor: "cloudflare" (default) ou "bedrock". */
+  provider: Annotation<string>(),
   /** Modelo de decisão (Clef); vazio → default da plataforma. */
   clefModel: Annotation<string>(),
+  /** Id do modelo Bedrock (quando provider=bedrock). */
+  bedrockModel: Annotation<string>(),
   /** Limiar do gate: prob. mínima de auto_merge; vazio → default. */
   autoMergeMin: Annotation<number>(),
   /** Limiar do gate: prob. máxima de regressão tolerada; vazio → default. */

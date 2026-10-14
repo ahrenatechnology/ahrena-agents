@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import type { ReviewStateT } from "../state";
 import { runClef, type ClefAnswers, type ClefQuestion } from "../clef";
+import { runBedrockDecision } from "../bedrock";
 import { countFindings } from "../findings";
 
 /**
@@ -117,11 +118,14 @@ export async function decisor(state: ReviewStateT): Promise<Partial<ReviewStateT
   try {
     const autoMergeMin = clampProb(state.autoMergeMin, DEFAULT_AUTO_MERGE_MIN);
     const regressionMax = clampProb(state.regressionMax, DEFAULT_REGRESSION_MAX);
-    const answers = await runClef({
-      state: buildDossier(state),
-      questions: QUESTIONS,
-      model: state.clefModel,
-    });
+    const dossier = buildDossier(state);
+    // Provider pluggável: Cloudflare (Clef nativo) é o default; bedrock usa um
+    // LLM on-demand na AWS e devolve a MESMA forma de respostas.
+    const provider = (state.provider || "cloudflare").toLowerCase();
+    const answers =
+      provider === "bedrock"
+        ? await runBedrockDecision({ state: dossier, questions: QUESTIONS, model: state.bedrockModel })
+        : await runClef({ state: dossier, questions: QUESTIONS, model: state.clefModel });
     return { decision: decide(answers, autoMergeMin, regressionMax) };
   } catch (error) {
     const reason = sanitizeReason(error instanceof Error ? error.message : String(error));

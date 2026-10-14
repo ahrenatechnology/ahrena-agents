@@ -25,6 +25,8 @@ async function main(): Promise<void> {
       "repo-path": { type: "string" },
       model: { type: "string" },
       "clef-model": { type: "string" },
+      "decisor-provider": { type: "string" },
+      "bedrock-model": { type: "string" },
       "auto-merge-min": { type: "string" },
       "regression-max": { type: "string" },
       "max-warnings": { type: "string" },
@@ -39,6 +41,8 @@ async function main(): Promise<void> {
     // Vazio → o nó aplica o default da plataforma (flag vence env).
     model: values.model ?? process.env.ARGOS_MODEL,
     clefModel: values["clef-model"] ?? process.env.CLEF_MODEL,
+    provider: values["decisor-provider"] ?? process.env.DECISOR_PROVIDER,
+    bedrockModel: values["bedrock-model"] ?? process.env.BEDROCK_MODEL,
     autoMergeMin: numOpt(values["auto-merge-min"] ?? process.env.DECISOR_AUTO_MERGE_MIN),
     regressionMax: numOpt(values["regression-max"] ?? process.env.DECISOR_REGRESSION_MAX),
     maxWarnings: numOpt(values["max-warnings"] ?? process.env.DECISOR_MAX_WARNINGS),
