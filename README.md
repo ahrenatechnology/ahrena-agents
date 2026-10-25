@@ -122,6 +122,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      checks: read # o resultado do CI, que o Argos lê antes de revisar
+      statuses: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -169,6 +171,9 @@ variável de ambiente → default. Na GitHub Action, cada um é um `input`.
 | `--auto-merge-min` | `DECISOR_AUTO_MERGE_MIN` | `auto-merge-min` | `0.85` | prob. **mínima** de `auto_merge` p/ fechar sozinho (0–1) |
 | `--regression-max` | `DECISOR_REGRESSION_MAX` | `regression-max` | `0.15` | prob. **máxima** de regressão tolerada (0–1) |
 | `--max-warnings` | `DECISOR_MAX_WARNINGS` | `max-warnings` | `2` | máx. de **warnings** que ainda vai ao Clef; acima disso o **pré-gate** delega (ex.: `2` ⇒ 3+ warnings = delega) |
+| `--checks` | `ARGOS_CHECKS_FILE` | `checks-file` | — | arquivo JSON com o resultado das **checagens determinísticas** (um array de `{name, conclusion}`, ou o `toJSON(needs)` de um workflow). Dado, vence a leitura pela API |
+| `--checks-wait` | `ARGOS_CHECKS_WAIT` | `checks-wait` | `900` no Actions, `0` fora | segundos que o Argos **espera as outras checagens** do commit terminarem antes de revisar |
+| `--checks-exclude` | `ARGOS_CHECKS_EXCLUDE` | `checks-exclude` | — | regex dos nomes de checagens a ignorar (as da própria execução do Argos já saem sozinhas) |
 
 Os dois limiares de probabilidade são **presos em [0,1]**; valor vazio ou
 inválido cai no default. O `--max-warnings` é a contagem a partir dos **achados
@@ -229,6 +234,33 @@ O Decisor é **multi-provedor** — o produto roda onde o cliente tem infra:
 ```
 
 ---
+
+## As checagens determinísticas vêm antes
+
+O Argos revisa **depois** das checagens determinísticas do pipeline (testes, lint, tipos, build), e lê o
+resultado delas: o que um script já decidiu não vira opinião.
+
+```
+checagens do CI ──► Argos (lê o PR sabendo o que passou e o que quebrou) ──► pré-gate ──► Clef
+```
+
+- **De onde vêm.** Dentro do GitHub Actions, o runtime lê sozinho, pela API, os *check runs* e os
+  *commit statuses* do commit do PR: qualquer CI que publique no GitHub, sem saber o nome de nenhum job.
+  Espera elas terminarem até `checks-wait`. Fora do GitHub, ou para escolher o que entra, passe um
+  arquivo com `--checks`.
+- **No Argos.** Entram no prompt como fatos: uma checagem vermelha vira um achado `blocking` com o nome
+  dela, o Argos não contradiz nem repete o que uma checagem decidiu, e julga os testes sabendo o que elas
+  provaram.
+- **No pré-gate.** Uma checagem vermelha nunca chega ao Clef: o PR fica para uma pessoa, seja qual for o
+  parecer.
+- **No Clef.** O dossiê leva a contagem (quantas verdes, quais vermelhas).
+- **No comentário.** Uma linha com o resultado, e cada vermelha (ou sem terminar no prazo) com o link.
+
+Sem checagens (nenhuma publicada, sem token, erro na leitura), o Argos revisa como antes, e o comentário
+diz que o parecer não considera o CI.
+
+A Action precisa ler os checks do repositório: dê ao job `checks: read` (e `statuses: read`, quando o CI
+reporta por status).
 
 ## Estrutura (por processo)
 

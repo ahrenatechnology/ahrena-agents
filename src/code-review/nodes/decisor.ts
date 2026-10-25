@@ -3,6 +3,7 @@ import type { ReviewStateT } from "../state";
 import { runClef, type ClefAnswers, type ClefQuestion } from "../clef";
 import { runBedrockDecision } from "../bedrock";
 import { countFindings } from "../findings";
+import { countChecks } from "../checks";
 
 /**
  * Perguntas tipadas que o Clef responde sobre o PR — o contrato do decisor.
@@ -70,6 +71,9 @@ function buildDossier(state: ReviewStateT) {
     verdict: state.verdict,
     findings, // achados estruturados: sinal mais objetivo que a prosa
     counts: countFindings(findings),
+    // As checagens determinísticas: o Clef pesa o parecer do Argos junto com o que o
+    // pipeline provou (todas verdes, quantas, quais).
+    checks: countChecks(state.checks ?? []),
     review: (state.summary ?? "").slice(0, 8000),
     diff: diffStats(state.repoPath, state.changed),
     changed: state.changed ?? null,

@@ -1,5 +1,6 @@
 import type { ReviewStateT } from "./state";
 import { countFindings, type Finding } from "./findings";
+import { countChecks, isRed } from "./checks";
 
 /** Escapa o que quebraria uma célula de tabela Markdown (pipe e quebra de linha). */
 function cell(text: string): string {
@@ -35,6 +36,26 @@ export function renderComment(state: Partial<ReviewStateT>): string {
   out.push(`**Verdict:** \`${state.verdict ?? "?"}\`  ·  **Decisor:** \`${state.decision ?? "—"}\``);
   out.push("");
   out.push(`🔴 **${blocking}** bloqueante${blocking === 1 ? "" : "s"} · 🟡 **${warning}** warning${warning === 1 ? "" : "s"}`);
+
+  // As checagens determinísticas que o Argos leu antes de revisar.
+  const checks = state.checks ?? [];
+  if (checks.length) {
+    const { passed, red, total } = countChecks(checks);
+    const pending = checks.filter((c) => c.conclusion === "pending").length;
+    out.push("");
+    out.push(
+      `**Checagens determinísticas:** ${passed} de ${total} verdes` +
+        (red.length ? ` · 🔴 ${red.length} vermelha${red.length === 1 ? "" : "s"}` : "") +
+        (pending ? ` · ⏳ ${pending} sem terminar no prazo` : ""),
+    );
+    for (const c of checks.filter((c) => isRed(c) || c.conclusion === "pending")) {
+      const name = c.url ? `[${cell(c.name)}](${c.url})` : cell(c.name);
+      out.push(`- ${isRed(c) ? "🔴" : "⏳"} ${name}${c.summary ? ` — ${cell(c.summary)}` : ""}`);
+    }
+  } else {
+    out.push("");
+    out.push("**Checagens determinísticas:** nenhuma lida; o parecer não considera o resultado do CI.");
+  }
 
   if (findings.length) {
     out.push("");

@@ -48,6 +48,15 @@ inputs:
   max-warnings:
     description: "Pré-gate: máximo de warnings que ainda vai ao Clef; acima disso delega. Vazio → default (2)."
     required: false
+  checks-file:
+    description: "Arquivo JSON com as checagens determinísticas (array de {name, conclusion}, ou toJSON(needs)). Vazio → lê o commit do PR pela API do GitHub."
+    required: false
+  checks-wait:
+    description: "Segundos que o Argos espera as outras checagens do commit terminarem. Vazio → default (900)."
+    required: false
+  checks-exclude:
+    description: "Regex dos nomes de checagens a ignorar. As da própria execução do Argos já saem sozinhas."
+    required: false
 
 runs:
   using: "docker"
@@ -68,6 +77,9 @@ runs:
     DECISOR_AUTO_MERGE_MIN: ${{ inputs.auto-merge-min }}
     DECISOR_REGRESSION_MAX: ${{ inputs.regression-max }}
     DECISOR_MAX_WARNINGS: ${{ inputs.max-warnings }}
+    ARGOS_CHECKS_FILE: ${{ inputs.checks-file }}
+    ARGOS_CHECKS_WAIT: ${{ inputs.checks-wait }}
+    ARGOS_CHECKS_EXCLUDE: ${{ inputs.checks-exclude }}
   args:
     - "--pr"
     - ${{ github.event.pull_request.number }}

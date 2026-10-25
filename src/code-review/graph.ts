@@ -4,12 +4,14 @@ import { argos } from "./nodes/argos";
 import { erodos } from "./nodes/erodos";
 import { decisor } from "./nodes/decisor";
 import { countFindings } from "./findings";
+import { countChecks } from "./checks";
 
 /** Pré-gate: default da plataforma do máximo de warnings que ainda vai ao Clef. */
 const DEFAULT_MAX_WARNINGS = 2; // 3+ warnings → delega, sem gastar o Clef
 
 /**
  * PRÉ-GATE — roteamento determinístico e barato, antes de gastar o Clef:
+ *   checagem determinística vermelha        → Erodos (o piso: nunca auto_merge)
  *   bloqueante (ou request_changes)        → Erodos (rejeita + delega o fix)
  *   approve com > maxWarnings (ex.: 3+)     → Erodos (rejeita + delega o fix)
  *   approve com 0–maxWarnings warnings      → Decisor (zona cinza; Clef decide)
@@ -25,6 +27,9 @@ function afterArgos(state: ReviewStateT): "decisor" | "erodos" | typeof END {
   const raw = Number.isFinite(state.maxWarnings) ? (state.maxWarnings as number) : DEFAULT_MAX_WARNINGS;
   const maxWarnings = Math.max(0, Math.floor(raw));
 
+  // O piso determinístico: com uma checagem vermelha, o PR não vai ao Clef, seja qual
+  // for o parecer. O Argos pode errar; o resultado de um script, não.
+  if (countChecks(state.checks ?? []).red.length > 0) return "erodos";
   if (blocking > 0 || state.verdict === "request_changes") return "erodos";
   if (state.verdict === "approve") return warning > maxWarnings ? "erodos" : "decisor";
   return END;
