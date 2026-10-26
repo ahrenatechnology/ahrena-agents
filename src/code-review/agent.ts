@@ -17,6 +17,34 @@ export const FIXER = "ahrena-engineering-quality:erodos";
 const READ_ONLY = ["Read", "Grep", "Glob"];
 
 /**
+ * As credenciais do job não são do agente. O que ele lê e o que os comandos dele rodam
+ * pode acabar no parecer, e o parecer é público no PR: uma instrução plantada no diff
+ * não pode levar um token até ali. Saem do ambiente do agente os tokens que o runtime
+ * usa por conta própria (ler os checks, empurrar o commit do Erodos, perguntar ao Clef);
+ * fica a credencial do modelo, sem a qual o agente não roda.
+ */
+const SECRET_ENV = /^(GH_TOKEN|GITHUB_TOKEN|ARGOS_PUSH_TOKEN|CLOUDFLARE_API_TOKEN|AWS_.*|ACTIONS_RUNTIME_TOKEN|ACTIONS_ID_TOKEN_REQUEST_.*|ACTIONS_CACHE_URL|ACTIONS_RESULTS_URL|NPM_TOKEN|NODE_AUTH_TOKEN|DOCKER_AUTH_CONFIG)$/;
+
+/** E os arquivos onde um job costuma deixar credencial em disco (docker login, gh, git, npm, aws). */
+const SECRET_FILES = [
+  "Read(~/.docker/**)",
+  "Read(~/.config/gh/**)",
+  "Read(~/.git-credentials)",
+  "Read(~/.npmrc)",
+  "Read(~/.aws/**)",
+  "Read(//root/.docker/**)",
+  "Read(//home/*/.docker/**)",
+];
+
+export function agentEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (value !== undefined && !SECRET_ENV.test(key)) out[key] = value;
+  }
+  return out;
+}
+
+/**
  * Invoca o agente orquestrador `argos` do ahrena-framework (plugin
  * `code-review`), que conduz a review: roteia, roda as lenses, funde num
  * verdict. Carrega todos os plugins das lenses. Mesmo prompt/skills do dev —
@@ -48,6 +76,8 @@ export async function runAgent(opts: {
     agent: opts.agent,
     permissionMode: "dontAsk",
     allowedTools: opts.tools,
+    disallowedTools: SECRET_FILES,
+    env: agentEnv(process.env),
     abortController: controller,
     maxTurns: 100,
     cwd: opts.cwd,
