@@ -115,7 +115,7 @@ async function main(): Promise<void> {
 
   // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.
   // A entrada também vai para o resultado: as checagens que o Argos leu são parte do parecer.
-  const final: Partial<ReviewStateT> = { pr: input.pr, changed: input.changed, checks: input.checks };
+  const final: Partial<ReviewStateT> = { pr: input.pr, changed: input.changed, checks: input.checks, execution: input.execution };
   const stream = await graph.stream(input, { streamMode: "updates" });
   for await (const update of stream) {
     for (const [node, patch] of Object.entries(update) as [string, Partial<ReviewStateT>][]) {
