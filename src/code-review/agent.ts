@@ -6,12 +6,38 @@ import { PLUGINS } from "../shared/paths";
 export const DEFAULT_MODEL = "claude-opus-4-8";
 
 /**
+ * Os agentes, pelo nome qualificado do plugin. Há dois `argos` no framework: o
+ * orquestrador (`code-review`), que conduz a review inteira, e o revisor do `quality`.
+ * O runtime conduz a review, então chama o orquestrador, sem ambiguidade.
+ */
+export const ORCHESTRATOR = "ahrena-engineering-code-review:argos";
+export const FIXER = "ahrena-engineering-quality:erodos";
+
+/** O que o Argos sempre pode usar: ler. Executar entra só pelos comandos que o projeto declarou. */
+const READ_ONLY = ["Read", "Grep", "Glob"];
+
+/**
  * Invoca o agente orquestrador `argos` do ahrena-framework (plugin
  * `code-review`), que conduz a review: roteia, roda as lenses, funde num
  * verdict. Carrega todos os plugins das lenses. Mesmo prompt/skills do dev —
  * zero cópia.
  */
-export async function runArgos(opts: { cwd: string; prompt: string; model?: string }): Promise<string> {
+export async function runArgos(opts: { cwd: string; prompt: string; model?: string; allow?: string[] }): Promise<string> {
+  return runAgent({ ...opts, agent: ORCHESTRATOR, tools: [...READ_ONLY, ...(opts.allow ?? [])], label: "Argos conduzindo a review…" });
+}
+
+/**
+ * Roda um agente do framework até o fim e devolve o texto dele. `tools` é tudo o que ele
+ * pode usar: com `dontAsk`, o que não está na lista é negado.
+ */
+export async function runAgent(opts: {
+  cwd: string;
+  prompt: string;
+  model?: string;
+  agent: string;
+  tools: string[];
+  label: string;
+}): Promise<string> {
   const controller = new AbortController();
   const TIMEOUT_S = 600;
   const timer = setTimeout(() => controller.abort(), TIMEOUT_S * 1000);
@@ -19,14 +45,9 @@ export async function runArgos(opts: { cwd: string; prompt: string; model?: stri
   const options: Options = {
     model: opts.model || DEFAULT_MODEL,
     plugins: PLUGINS.map((path) => ({ type: "local", path })),
-    // O Argos orquestrador vive no plugin `code-review`. NOTA: o plugin
-    // `quality` ainda traz um agente legado também chamado "argos" — se houver
-    // ambiguidade no run real, desambiguar (ou remover quality/argos.md no
-    // framework, já que o orquestrador o substitui).
-    agent: "argos",
+    agent: opts.agent,
     permissionMode: "dontAsk",
-    // Read-only: o Argos conduz e lê; quem escreve (fix) e mergeia é o runtime.
-    allowedTools: ["Read", "Grep", "Glob"],
+    allowedTools: opts.tools,
     abortController: controller,
     maxTurns: 100,
     cwd: opts.cwd,
@@ -34,7 +55,7 @@ export async function runArgos(opts: { cwd: string; prompt: string; model?: stri
 
   const chunks: string[] = [];
   const problems: string[] = [];
-  const progress = spinner("Argos conduzindo a review…");
+  const progress = spinner(opts.label);
   let actions = 0;
   try {
     for await (const message of query({ prompt: opts.prompt, options })) {
@@ -42,7 +63,7 @@ export async function runArgos(opts: { cwd: string; prompt: string; model?: stri
         if (message.error) problems.push(`assistant: ${message.error}`);
         for (const block of message.message.content) {
           if (block.type === "text") chunks.push(block.text);
-          else if (block.type === "tool_use") progress.update(`Argos trabalhando… ${++actions} ação(ões)`);
+          else if (block.type === "tool_use") progress.update(`${opts.label.replace(/…$/, "")} · ${++actions} ação(ões)`);
         }
       } else if (message.type === "result" && message.subtype !== "success") {
         const detail = message.errors.length ? message.errors.join(" | ") : message.subtype;

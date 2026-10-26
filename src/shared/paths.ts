@@ -3,8 +3,8 @@ import { dirname, join } from "node:path";
 
 // src/shared/ → a raiz do projeto fica dois níveis acima.
 const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const FRAMEWORK = join(PROJECT_ROOT, "ahrena", "ahrena-framework");
-const ENGINEERING = join(FRAMEWORK, "engineering");
+export const FRAMEWORK = join(PROJECT_ROOT, "ahrena", "ahrena-framework");
+export const ENGINEERING = join(FRAMEWORK, "engineering");
 
 /**
  * Plugins do ahrena-framework que o Argos orquestrador precisa carregar: o

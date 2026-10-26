@@ -262,6 +262,38 @@ diz que o parecer não considera o CI.
 A Action precisa ler os checks do repositório: dê ao job `checks: read` (e `statuses: read`, quando o CI
 reporta por status).
 
+## A sequência do orquestrador
+
+O runtime conduz a review na ordem do orquestrador do plugin `code-review` (`ahrena-engineering-code-review:argos`,
+chamado pelo nome qualificado, para não carregar o `argos` do plugin `quality`):
+
+```
+router (script) ──► Argos (lentes + síntese) ──► pré-gate ──► Decisor (Clef) ──► merge
+                                                     └──────► Erodos (correção) ──► commit ──► CI de novo ──► Argos
+```
+
+1. **Router, por script.** O nó `router` roda o `route-review.py` do framework sobre `base...head`: as lentes
+   que rodam são as que a tabela de rotas selecionou, as mesmas em toda execução sobre o mesmo diff. O Argos
+   recebe a seleção e diz quais lentes não foram selecionadas. Se o router não roda, o Argos roteia lendo, e o
+   comentário diz isso.
+2. **Detectores, por script.** Para cada rota que liga um detector (`python-structure`, `python-comments`,
+   `backstage-language`), o nó roda o detector report-only sobre os arquivos que dispararam a rota. O que eles
+   levantam é candidato: o Argos passa cada um pelo limite da regra e lista os que ficam.
+3. **Execução restrita.** As condições que precisam rodar algo só rodam com os comandos que o projeto declara
+   em `exec-commands` (ex.: `make test-unit;make test-contract`), e só num PR do mesmo repositório: num fork,
+   rodar o build seria rodar o código do autor. O agente recebe uma permissão por comando, por prefixo, e nenhum
+   shell aberto. Sem comando declarado, ou num fork, cada condição dessas vira um achado `unchecked`.
+4. **Síntese e veredito**, pelo Argos, como antes.
+5. **Correção.** Com `fix: true`, o Erodos (`ahrena-engineering-quality:erodos`) aplica os achados mecânicos
+   (`kind: como`) no head do PR, e o runtime grava um commit com o trailer `Ahrena-Fix-Round: N` e o empurra
+   para a branch do PR. A nova revisão é a do CI desse commit: as checagens rodam de novo e o Argos revisa o que
+   o Erodos escreveu, nunca a própria edição. O trailer conta as rodadas; no limite (`max-rounds`, default 2),
+   se o head andou, num fork ou sem nada mecânico para aplicar, fica para uma pessoa.
+6. **Merge**, pelo Decisor, como antes.
+
+Para o loop fechar, o commit do Erodos precisa disparar o CI: um push com o `GITHUB_TOKEN` não dispara workflows.
+Passe em `push-token` o token de um GitHub App com escrita no conteúdo, e dê ao job `contents: write`.
+
 ## Estrutura (por processo)
 
 ```
@@ -271,10 +303,13 @@ src/
 │   ├── progress.ts        # spinner
 │   └── paths.ts           # caminhos do framework
 └── code-review/           # o processo
-    ├── graph.ts           # intake → argos → (decisor|erodos|fim)
-    ├── state.ts · router.ts · verdict.ts · preview.ts · agent.ts
+    ├── graph.ts           # router → argos → (decisor|erodos|fim)
+    ├── state.ts · verdict.ts · preview.ts · agent.ts · comment.ts
+    ├── routing.ts         # o router e os detectores do framework
+    ├── execution.ts       # se o review pode executar, e o quê
+    ├── checks.ts          # as checagens determinísticas do commit
     └── nodes/             # um nó por arquivo
-        └── intake · argos · erodos · decisor
+        └── router · argos · erodos · decisor
 ```
 
 Processo novo = pasta nova em `src/`.
@@ -288,10 +323,12 @@ dentro da imagem** no build — o cliente não lida com submodule.
 
 ## Estado atual
 
-- ✅ Argos revisa read-only (mesmo prompt/skills do dev); roteia internamente.
+- ✅ Argos segue a sequência do orquestrador do `code-review`: o router e os detectores rodam por script; a
+  execução fica restrita aos comandos que o projeto declara, num PR do mesmo repositório.
 - ✅ Prévias por etapa + spinner.
 - ✅ Verdict publicado no PR como `argos[bot]`.
 - ✅ Decisor (Clef/Workers AI) no gate de merge: `approve` **e** `auto_merge`
   (hoje `≥0.85` e regressão `≤0.15`) → auto-merge (squash). Os pesos vão no
   comentário (calibração manual); Clef fora/sem credencial → segura p/ humano.
-- ⬜ Erodos (fix no mesmo flow).
+- ✅ Erodos aplica os achados mecânicos num commit da rodada (opt-in, `fix`); o loop fecha no CI do commit novo,
+  com limite de rodadas.
