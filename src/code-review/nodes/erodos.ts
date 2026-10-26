@@ -44,7 +44,12 @@ function reasonFor(state: ReviewStateT): string {
 export async function erodos(state: ReviewStateT): Promise<Partial<ReviewStateT>> {
   const reason = reasonFor(state);
   const max = Math.max(0, Math.floor(Number.isFinite(state.maxRounds) ? (state.maxRounds as number) : DEFAULT_MAX_ROUNDS));
+  // O que o pré-gate mandou para cá não entra como está: uma aprovação com uma checagem
+  // vermelha ou acima do corte de warnings é publicada como request_changes, para que
+  // ninguém leia "approve" num PR que o review segurou.
+  const verdict = state.verdict === "approve" ? "request_changes" : state.verdict;
   const hold = (why: string, round = state.round ?? 0): Partial<ReviewStateT> => ({
+    verdict,
     round,
     decision: `hold_for_human: ${reason} — ${why}.`,
   });
@@ -124,6 +129,7 @@ export async function erodos(state: ReviewStateT): Promise<Partial<ReviewStateT>
     const commit = git(repo, ["rev-parse", "HEAD"]);
     git(repo, ["push", "--quiet", remote, `HEAD:refs/heads/${execution.headRef}`]);
     return {
+      verdict,
       round: next,
       fixCommit: commit,
       summary: [state.summary, "", "### Erodos", "", report.trim()].filter(Boolean).join("\n"),
