@@ -57,6 +57,18 @@ inputs:
   checks-exclude:
     description: "Regex dos nomes de checagens a ignorar. As da própria execução do Argos já saem sozinhas."
     required: false
+  exec-commands:
+    description: "Comandos de teste que o review pode rodar, separados por ';' (ex.: 'make test-unit;make test-contract'). Só em PR do mesmo repositório. Vazio → não executa nada; o que precisava rodar vira unchecked."
+    required: false
+  fix:
+    description: "true liga o Erodos: aplica os achados mecânicos num commit e o empurra para a branch do PR. Default false."
+    required: false
+  max-rounds:
+    description: "Limite de rodadas do Erodos num PR; depois disso, uma pessoa decide. Vazio → default (2)."
+    required: false
+  push-token:
+    description: "Token para o Erodos empurrar o commit. Use o de um GitHub App: um push com o GITHUB_TOKEN não dispara o CI de novo, e a nova revisão não acontece."
+    required: false
 
 runs:
   using: "docker"
@@ -80,6 +92,10 @@ runs:
     ARGOS_CHECKS_FILE: ${{ inputs.checks-file }}
     ARGOS_CHECKS_WAIT: ${{ inputs.checks-wait }}
     ARGOS_CHECKS_EXCLUDE: ${{ inputs.checks-exclude }}
+    ARGOS_EXEC_COMMANDS: ${{ inputs.exec-commands }}
+    ARGOS_FIX: ${{ inputs.fix }}
+    ARGOS_MAX_ROUNDS: ${{ inputs.max-rounds }}
+    ARGOS_PUSH_TOKEN: ${{ inputs.push-token }}
   args:
     - "--pr"
     - ${{ github.event.pull_request.number }}

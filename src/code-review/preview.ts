@@ -7,6 +7,11 @@ import { countFindings } from "./findings";
  */
 export function renderPreview(node: string, patch: Partial<ReviewStateT>): string {
   switch (node) {
+    case "router": {
+      const r = patch.routing;
+      if (!r?.ok) return `· Router · não rodou${r?.error ? `: ${r.error}` : ""}`;
+      return `✓ Router · ${r.skills.length} lente(s) · ${(patch.detections ?? []).length} candidato(s) dos detectores`;
+    }
     case "argos": {
       const { blocking, warning } = countFindings(patch.findings ?? []);
       return `✓ Argos · verdict: ${patch.verdict ?? "?"} · achados: ${blocking} bloq / ${warning} warn`;

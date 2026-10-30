@@ -1,6 +1,8 @@
 import { Annotation } from "@langchain/langgraph";
 import type { Finding } from "./findings";
 import type { Check } from "./checks";
+import type { Detection, DetectorRun, Routing } from "./routing";
+import type { Execution } from "./execution";
 
 export type Verdict = "approve" | "request_changes" | "comment";
 
@@ -31,6 +33,20 @@ export const ReviewState = Annotation.Root({
    * Vazio → o Argos revisa sem elas, como antes.
    */
   checks: Annotation<Check[]>(),
+  /** As lentes que o router do framework selecionou, por script, antes do Argos. */
+  routing: Annotation<Routing>(),
+  /** Os detectores do framework que rodaram, e se cada um decidiu. */
+  detectorRuns: Annotation<DetectorRun[]>(),
+  /** Os candidatos que os detectores levantaram, para o Argos passar pelo limite de cada regra. */
+  detections: Annotation<Detection[]>(),
+  /** Se o review pode executar, e quais comandos (passo 5 das lentes; o Erodos confirma o fix com eles). */
+  execution: Annotation<Execution>(),
+  /** O Erodos aplica os achados mecânicos e empurra o commit; desligado, a delegação cai para uma pessoa. */
+  fix: Annotation<boolean>(),
+  /** Limite de rodadas do loop correção → nova revisão; vazio → default (2). */
+  maxRounds: Annotation<number>(),
+  /** O commit que o Erodos empurrou, quando empurrou. */
+  fixCommit: Annotation<string>(),
   /** Verdict do Argos, extraído do texto da review. */
   verdict: Annotation<Verdict>(),
   /** Achados estruturados do Argos (alicerce do pré-gate e dos follow-ups). */
