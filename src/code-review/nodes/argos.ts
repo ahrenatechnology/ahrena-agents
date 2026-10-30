@@ -2,6 +2,7 @@ import type { ReviewStateT } from "../state";
 import { runArgos } from "../agent";
 import { parseVerdict } from "../verdict";
 import { parseFindings } from "../findings";
+import { countChecks, renderChecksForPrompt } from "../checks";
 
 /**
  * Nó do Argos: invoca o orquestrador do framework (que roteia, roda as lenses e
@@ -11,8 +12,28 @@ import { parseFindings } from "../findings";
  */
 export async function argos(state: ReviewStateT): Promise<Partial<ReviewStateT>> {
   try {
+    const checks = state.checks ?? [];
+    const { red } = countChecks(checks);
+    // As checagens determinísticas rodaram antes: são fatos, não opiniões. O Argos não
+    // decide de novo o que um script já decidiu (o mesmo motivo de deixar as condições
+    // que um hook decide para o hook); ele lê o PR sabendo disso e agrega.
+    const deterministic = checks.length
+      ? [
+          "",
+          "Antes de você, o pipeline rodou as checagens determinísticas (CI, lint, testes). O resultado:",
+          renderChecksForPrompt(checks),
+          "",
+          "Use-as como fatos:",
+          "- não repita como achado o que uma checagem já decidiu, nem a contradiga;",
+          red.length
+            ? `- cada checagem VERMELHA (${red.join(", ")}) é um achado "blocking" na sua lista, com o nome dela no "rule"; diga, se a mudança mostrar, a causa provável;`
+            : "- nenhuma ficou vermelha;",
+          "- ao julgar os testes, considere o que as checagens provaram e o que nenhuma delas cobre.",
+        ]
+      : [];
     const prompt = [
       `Conduza a review do PR #${state.pr} (mudança: ${state.changed ?? "não informada"}).`,
+      ...deterministic,
       "",
       "Narre o parecer como preferir, mas ENCERRE com DOIS artefatos de máquina, nesta ordem:",
       "",

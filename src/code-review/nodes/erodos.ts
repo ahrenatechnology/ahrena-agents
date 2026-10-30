@@ -1,5 +1,6 @@
 import type { ReviewStateT } from "../state";
 import { countFindings } from "../findings";
+import { countChecks } from "../checks";
 
 /**
  * Nó do Erodos: destino de "rejeita + delega o fix". Aplicaria os achados
@@ -9,8 +10,11 @@ import { countFindings } from "../findings";
  */
 export function erodos(state: ReviewStateT): Partial<ReviewStateT> {
   const { blocking, warning } = countFindings(state.findings ?? []);
+  const { red } = countChecks(state.checks ?? []);
   const reason =
-    blocking > 0
+    red.length > 0
+      ? `checagem vermelha: ${red.join(", ")}`
+      : blocking > 0
       ? `${blocking} bloqueante(s)`
       : state.verdict === "request_changes"
         ? "mudanças solicitadas"

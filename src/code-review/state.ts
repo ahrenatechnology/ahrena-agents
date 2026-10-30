@@ -1,5 +1,6 @@
 import { Annotation } from "@langchain/langgraph";
 import type { Finding } from "./findings";
+import type { Check } from "./checks";
 
 export type Verdict = "approve" | "request_changes" | "comment";
 
@@ -24,6 +25,12 @@ export const ReviewState = Annotation.Root({
   regressionMax: Annotation<number>(),
   /** Pré-gate: máximo de warnings que ainda vai ao Clef; vazio → default (2). */
   maxWarnings: Annotation<number>(),
+  /**
+   * As checagens determinísticas do pipeline (CI, lint, testes), que rodaram ANTES
+   * do Argos: ele lê o PR sabendo o que passou e o que quebrou, e o Decisor as pesa.
+   * Vazio → o Argos revisa sem elas, como antes.
+   */
+  checks: Annotation<Check[]>(),
   /** Verdict do Argos, extraído do texto da review. */
   verdict: Annotation<Verdict>(),
   /** Achados estruturados do Argos (alicerce do pré-gate e dos follow-ups). */
