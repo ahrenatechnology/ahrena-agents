@@ -132,7 +132,7 @@ test("#27/AC-1: the push token is the only header left for the host, over the ch
   try {
     const env = authEnv("push-token");
     const run = (...args: string[]) =>
-      execFileSync("git", args, { cwd: repo, encoding: "utf8", env: { ...env, GIT_CONFIG_GLOBAL: "/dev/null" } }).trim();
+      execFileSync("git", args, { cwd: repo, encoding: "utf8", env: { ...env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" } }).trim();
     const basic = Buffer.from("x-access-token:push-token").toString("base64");
     // In order: the checkout's, the reset, the push token's. An empty value clears the list.
     assert.deepEqual(run("config", "--get-all", key).split("\n"), ["AUTHORIZATION: basic checkout-token", "", `Authorization: Basic ${basic}`]);
