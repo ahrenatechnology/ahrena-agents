@@ -88,6 +88,7 @@ test("#19/AC-4: a blocker counts the rounds from the trailers, up to max-rounds"
 });
 
 test("#19/AC-5: the push token is only ARGOS_PUSH_TOKEN, never the job's GITHUB_TOKEN", async () => {
+  delete process.env.ARGOS_PUSH_TOKEN;
   process.env.GH_TOKEN = "job";
   process.env.GITHUB_TOKEN = "job";
   process.env.GITHUB_REPOSITORY = "o/r";

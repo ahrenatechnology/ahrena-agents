@@ -51,12 +51,14 @@ export function resolveExecution(opts: { commands?: string; sameRepository?: boo
       const event = JSON.parse(readFileSync(eventPath, "utf8")) as PullRequestEvent;
       const head = event.pull_request?.head?.repo?.full_name;
       const base = event.pull_request?.base?.repo?.full_name;
-      // Dentro do Actions, o evento vence o que foi passado: um --same-repository forçado
-      // não liga execução e escrita num PR de fork.
-      if (head && base) same = head === base;
-      headRef ??= event.pull_request?.head?.ref;
+      // Dentro do Actions, o evento vence o que foi passado: um --same-repository ou um
+      // --head-ref forçados não ligam execução e escrita num PR de fork, nem num evento
+      // que não é de pull request.
+      same = Boolean(head && base && head === base);
+      headRef = event.pull_request?.head?.ref;
     } catch {
-      // sem evento legível: fica o que foi passado
+      // um evento que não se lê: na dúvida, não executa nem escreve
+      same = false;
     }
   }
   if (!same) {

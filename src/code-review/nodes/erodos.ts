@@ -83,8 +83,8 @@ export function countRounds(messages: string): number {
 
 /**
  * O que o git do repositório obedece e que o agente poderia ter mudado: a configuração
- * (um `url.insteadOf` levaria o token a outro host, um filtro rodaria código) e os
- * includes dela. Igual antes e depois do agente, ou nada é empurrado.
+ * do repositório (um `url.insteadOf` levaria o token a outro host, um filtro rodaria
+ * código). Igual antes e depois do agente, ou nada é empurrado.
  */
 export function configDigest(repoPath: string): string {
   const dir = git(repoPath, ["rev-parse", "--absolute-git-dir"]);
@@ -173,10 +173,13 @@ export async function erodos(state: ReviewStateT): Promise<Partial<ReviewStateT>
   const server = (process.env.GITHUB_SERVER_URL ?? "https://github.com").replace(/^https?:\/\//, "");
   const remote = `https://${server}/${repository}.git`;
   const network = { env: authEnv(token), timeout: NETWORK_TIMEOUT_MS };
+  // O checkout pode ter gravado o GITHUB_TOKEN do job como cabeçalho do host
+  // (persist-credentials): ele sai, e o único cabeçalho é o do push token.
+  const remoteGit = (args: string[]) => git(repo, ["-c", `http.https://${server}/.extraheader=`, ...args], network);
 
   let before: string;
   try {
-    const tip = git(repo, ["ls-remote", remote, `refs/heads/${execution.headRef}`], network).split(/\s+/)[0];
+    const tip = remoteGit(["ls-remote", remote, `refs/heads/${execution.headRef}`]).split(/\s+/)[0];
     if (tip !== head) return hold("o head andou desde a revisão; a próxima revisão vem primeiro", round);
     if (git(repo, ["status", "--porcelain"])) return hold("o checkout tem mudanças que não são do PR", round);
     git(repo, ["checkout", "--quiet", "--detach", head]);
@@ -243,7 +246,7 @@ export async function erodos(state: ReviewStateT): Promise<Partial<ReviewStateT>
     git(repo, ["add", "--all"]);
     git(repo, ["-c", "user.name=ahrena-erodos", "-c", "user.email=erodos@users.noreply.github.com", "commit", "--quiet", "--no-verify", "-m", message]);
     const commit = git(repo, ["rev-parse", "HEAD"]);
-    git(repo, ["push", "--quiet", "--no-verify", remote, `HEAD:refs/heads/${execution.headRef}`], network);
+    remoteGit(["push", "--quiet", "--no-verify", remote, `HEAD:refs/heads/${execution.headRef}`]);
     return {
       verdict,
       round: next,

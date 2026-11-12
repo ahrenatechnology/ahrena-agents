@@ -291,9 +291,10 @@ router (script) ──► Argos (lentes + síntese) ──► pré-gate ──�
      nele (quem chama os abre como follow-ups), e a linha `**Erodos:**` do comentário diz por quê;
    - **um bloqueante, uma checagem vermelha ou `request_changes`:** até `max-rounds` (default 2), e o parecer
      sai `request_changes`. No limite, fica para uma pessoa.
-6. **Decisão de merge**, pelo parecer: um `approve` sem bloqueante libera, e quem chama liga o auto-merge. A
-   resposta do Decisor (o Clef) vai no comentário como informação e não segura o merge (#19). Um `fixed:` na
-   decisão quer dizer que o Erodos empurrou um commit, e a decisão é a da revisão desse commit.
+6. **Decisão de merge**, pelo parecer: um `approve` sem bloqueante e com uma decisão que não começa com
+   `fixed:` libera, e quem chama liga o auto-merge. Um `fixed:` quer dizer que o Erodos empurrou um commit: esse
+   parecer não libera nada, e quem decide é a revisão do commit novo. A resposta do Decisor (o Clef) vai no
+   comentário como informação e não segura o merge (#19).
 
 Para o loop fechar, o commit do Erodos precisa disparar o CI: um push com o `GITHUB_TOKEN` não dispara workflows.
 O Erodos só empurra com o `push-token`, o token de um GitHub App com escrita no conteúdo, e nunca cai para o
