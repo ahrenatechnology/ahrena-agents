@@ -45,9 +45,6 @@ inputs:
   regression-max:
     description: "Limiar do gate: prob. máxima de regressão tolerada (0–1). Vazio → default (0.15)."
     required: false
-  max-warnings:
-    description: "Pré-gate: máximo de warnings que ainda vai ao Clef; acima disso delega. Vazio → default (2)."
-    required: false
   checks-file:
     description: "Arquivo JSON com as checagens determinísticas (array de {name, conclusion}, ou toJSON(needs)). Vazio → lê o commit do PR pela API do GitHub."
     required: false
@@ -56,6 +53,18 @@ inputs:
     required: false
   checks-exclude:
     description: "Regex dos nomes de checagens a ignorar. As da própria execução do Argos já saem sozinhas."
+    required: false
+  exec-commands:
+    description: "Comandos de teste que o review pode rodar, separados por ';' (ex.: 'make test-unit;make test-contract'). Só em PR do mesmo repositório. Vazio → não executa nada; o que precisava rodar vira unchecked."
+    required: false
+  fix:
+    description: "true liga o Erodos: aplica os achados mecânicos num commit e o empurra para a branch do PR. Num approve sem bloqueante, uma rodada só para os warnings. Default false."
+    required: false
+  max-rounds:
+    description: "Limite de rodadas do Erodos num PR segurado (bloqueante, checagem vermelha); depois disso, uma pessoa decide. Vazio → default (2). Os warnings de um approve têm sempre uma rodada só."
+    required: false
+  push-token:
+    description: "Token de um GitHub App para o Erodos empurrar o commit. Obrigatório para o Erodos escrever: um push com o GITHUB_TOKEN não dispara o CI de novo, e a nova revisão não aconteceria."
     required: false
 
 runs:
@@ -76,10 +85,13 @@ runs:
     AWS_SESSION_TOKEN: ${{ inputs.aws-session-token }}
     DECISOR_AUTO_MERGE_MIN: ${{ inputs.auto-merge-min }}
     DECISOR_REGRESSION_MAX: ${{ inputs.regression-max }}
-    DECISOR_MAX_WARNINGS: ${{ inputs.max-warnings }}
     ARGOS_CHECKS_FILE: ${{ inputs.checks-file }}
     ARGOS_CHECKS_WAIT: ${{ inputs.checks-wait }}
     ARGOS_CHECKS_EXCLUDE: ${{ inputs.checks-exclude }}
+    ARGOS_EXEC_COMMANDS: ${{ inputs.exec-commands }}
+    ARGOS_FIX: ${{ inputs.fix }}
+    ARGOS_MAX_ROUNDS: ${{ inputs.max-rounds }}
+    ARGOS_PUSH_TOKEN: ${{ inputs.push-token }}
   args:
     - "--pr"
     - ${{ github.event.pull_request.number }}

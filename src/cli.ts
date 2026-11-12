@@ -4,6 +4,7 @@ import { renderPreview } from "./code-review/preview";
 import { renderComment } from "./code-review/comment";
 import type { ReviewStateT } from "./code-review/state";
 import { fetchGithubChecks, loadChecks, type Check } from "./code-review/checks";
+import { resolveExecution } from "./code-review/execution";
 
 // Carrega CLAUDE_CODE_OAUTH_TOKEN (e afins) de um .env local, se houver.
 try {
@@ -17,6 +18,13 @@ function numOpt(raw: string | undefined): number | undefined {
   if (raw == null || raw === "") return undefined;
   const n = Number(raw);
   return Number.isFinite(n) ? n : undefined;
+}
+
+/** Liga/desliga por CLI/env: "true", "1", "yes" ligam; o resto, não. */
+function boolOpt(raw: string | boolean | undefined): boolean | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  if (typeof raw === "boolean") return raw;
+  return /^(true|1|yes|sim)$/i.test(raw.trim());
 }
 
 /** Default da espera pelas checagens dentro do GitHub Actions: o bastante para um CI típico. */
@@ -65,10 +73,14 @@ async function main(): Promise<void> {
       "bedrock-model": { type: "string" },
       "auto-merge-min": { type: "string" },
       "regression-max": { type: "string" },
-      "max-warnings": { type: "string" },
       checks: { type: "string" },
       "checks-wait": { type: "string" },
       "checks-exclude": { type: "string" },
+      "exec-commands": { type: "string" },
+      "same-repository": { type: "string" },
+      "head-ref": { type: "string" },
+      fix: { type: "string" },
+      "max-rounds": { type: "string" },
     },
   });
 
@@ -84,18 +96,24 @@ async function main(): Promise<void> {
     bedrockModel: values["bedrock-model"] ?? process.env.BEDROCK_MODEL,
     autoMergeMin: numOpt(values["auto-merge-min"] ?? process.env.DECISOR_AUTO_MERGE_MIN),
     regressionMax: numOpt(values["regression-max"] ?? process.env.DECISOR_REGRESSION_MAX),
-    maxWarnings: numOpt(values["max-warnings"] ?? process.env.DECISOR_MAX_WARNINGS),
     checks: await resolveChecks({
       file: values.checks ?? process.env.ARGOS_CHECKS_FILE,
       changed: values.changed,
       wait: numOpt(values["checks-wait"] ?? process.env.ARGOS_CHECKS_WAIT),
       exclude: values["checks-exclude"] ?? process.env.ARGOS_CHECKS_EXCLUDE,
     }),
+    execution: resolveExecution({
+      commands: values["exec-commands"] ?? process.env.ARGOS_EXEC_COMMANDS,
+      sameRepository: boolOpt(values["same-repository"] ?? process.env.ARGOS_SAME_REPOSITORY),
+      headRef: values["head-ref"] ?? process.env.ARGOS_HEAD_REF,
+    }),
+    fix: boolOpt(values.fix ?? process.env.ARGOS_FIX) ?? false,
+    maxRounds: numOpt(values["max-rounds"] ?? process.env.ARGOS_MAX_ROUNDS),
   };
 
   // Cospe uma prévia por etapa conforme o grafo avança; acumula o resultado.
   // A entrada também vai para o resultado: as checagens que o Argos leu são parte do parecer.
-  const final: Partial<ReviewStateT> = { pr: input.pr, changed: input.changed, checks: input.checks };
+  const final: Partial<ReviewStateT> = { pr: input.pr, changed: input.changed, checks: input.checks, execution: input.execution };
   const stream = await graph.stream(input, { streamMode: "updates" });
   for await (const update of stream) {
     for (const [node, patch] of Object.entries(update) as [string, Partial<ReviewStateT>][]) {

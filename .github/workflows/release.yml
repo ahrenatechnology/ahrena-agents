@@ -29,8 +29,8 @@ jobs:
       # --- Gate: só publica se passar ---
       - name: Typecheck
         run: npm run typecheck
-      # - name: Testes
-      #   run: npm test   # entra aqui quando houver suíte
+      - name: Testes
+        run: npm test
 
       # --- Alinha a versão do package.json com a tag ---
       - name: Versão a partir da tag
