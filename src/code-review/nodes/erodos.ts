@@ -44,15 +44,23 @@ function git(repoPath: string, args: string[], opts: { env?: NodeJS.ProcessEnv; 
 /**
  * A credencial do push vai no ambiente do git, como cabeçalho HTTP, e nunca na URL: a
  * linha de comando de um processo é legível por qualquer usuário da máquina.
+ *
+ * Vai na chave do host (`http.https://<host>/.extraheader`), e não na genérica: o
+ * checkout grava o GITHUB_TOKEN do job nessa mesma chave (persist-credentials), e uma
+ * chave por URL vence a genérica. A primeira entrada, vazia, zera a lista; a segunda é
+ * o push token, o único cabeçalho que segue para o host (#27).
  */
-export function authEnv(token: string, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+export function authEnv(token: string, server = "github.com", base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const basic = Buffer.from(`x-access-token:${token}`).toString("base64");
   const count = Number(base.GIT_CONFIG_COUNT ?? 0) || 0;
+  const key = `http.https://${server}/.extraheader`;
   return {
     ...base,
-    GIT_CONFIG_COUNT: String(count + 1),
-    [`GIT_CONFIG_KEY_${count}`]: "http.extraHeader",
-    [`GIT_CONFIG_VALUE_${count}`]: `Authorization: Basic ${basic}`,
+    GIT_CONFIG_COUNT: String(count + 2),
+    [`GIT_CONFIG_KEY_${count}`]: key,
+    [`GIT_CONFIG_VALUE_${count}`]: "",
+    [`GIT_CONFIG_KEY_${count + 1}`]: key,
+    [`GIT_CONFIG_VALUE_${count + 1}`]: `Authorization: Basic ${basic}`,
     GIT_TERMINAL_PROMPT: "0",
   };
 }
@@ -172,10 +180,8 @@ export async function erodos(state: ReviewStateT): Promise<Partial<ReviewStateT>
   if (!token || !repository) return hold("sem push token (o de um GitHub App) ou repositório para empurrar o commit", round);
   const server = (process.env.GITHUB_SERVER_URL ?? "https://github.com").replace(/^https?:\/\//, "");
   const remote = `https://${server}/${repository}.git`;
-  const network = { env: authEnv(token), timeout: NETWORK_TIMEOUT_MS };
-  // O checkout pode ter gravado o GITHUB_TOKEN do job como cabeçalho do host
-  // (persist-credentials): ele sai, e o único cabeçalho é o do push token.
-  const remoteGit = (args: string[]) => git(repo, ["-c", `http.https://${server}/.extraheader=`, ...args], network);
+  const network = { env: authEnv(token, server), timeout: NETWORK_TIMEOUT_MS };
+  const remoteGit = (args: string[]) => git(repo, args, network);
 
   let before: string;
   try {
