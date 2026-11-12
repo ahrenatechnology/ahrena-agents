@@ -84,6 +84,7 @@ export function renderComment(state: Partial<ReviewStateT>): string {
         : `**Execução:** não permitida (${cell(execution.reason ?? "sem motivo")}); o que precisava rodar ficou unchecked`,
     );
   }
+  if (state.fixNote) out.push(`**Erodos:** ${cell(state.fixNote)}`);
   if (state.fixCommit) out.push(`**Erodos:** rodada ${state.round ?? "?"} · \`${state.fixCommit.slice(0, 7)}\` empurrado; a próxima revisão é a desse commit`);
 
   if (findings.length) {

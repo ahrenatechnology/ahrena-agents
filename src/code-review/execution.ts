@@ -38,8 +38,8 @@ export function parseCommands(raw: string | undefined): string[] {
 
 /**
  * Decide a execução. Fora do GitHub Actions, quem chama diz se o head é do mesmo
- * repositório (`sameRepository`); dentro, o evento do pull request diz. Na dúvida, não
- * executa.
+ * repositório (`sameRepository`); dentro, o evento do pull request diz, e vence. Na
+ * dúvida, não executa.
  */
 export function resolveExecution(opts: { commands?: string; sameRepository?: boolean; headRef?: string }): Execution {
   const commands = parseCommands(opts.commands);
@@ -51,7 +51,9 @@ export function resolveExecution(opts: { commands?: string; sameRepository?: boo
       const event = JSON.parse(readFileSync(eventPath, "utf8")) as PullRequestEvent;
       const head = event.pull_request?.head?.repo?.full_name;
       const base = event.pull_request?.base?.repo?.full_name;
-      if (same === undefined && head && base) same = head === base;
+      // Dentro do Actions, o evento vence o que foi passado: um --same-repository forçado
+      // não liga execução e escrita num PR de fork.
+      if (head && base) same = head === base;
       headRef ??= event.pull_request?.head?.ref;
     } catch {
       // sem evento legível: fica o que foi passado

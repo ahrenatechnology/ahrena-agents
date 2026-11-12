@@ -73,7 +73,6 @@ async function main(): Promise<void> {
       "bedrock-model": { type: "string" },
       "auto-merge-min": { type: "string" },
       "regression-max": { type: "string" },
-      "max-warnings": { type: "string" },
       checks: { type: "string" },
       "checks-wait": { type: "string" },
       "checks-exclude": { type: "string" },
@@ -97,7 +96,6 @@ async function main(): Promise<void> {
     bedrockModel: values["bedrock-model"] ?? process.env.BEDROCK_MODEL,
     autoMergeMin: numOpt(values["auto-merge-min"] ?? process.env.DECISOR_AUTO_MERGE_MIN),
     regressionMax: numOpt(values["regression-max"] ?? process.env.DECISOR_REGRESSION_MAX),
-    maxWarnings: numOpt(values["max-warnings"] ?? process.env.DECISOR_MAX_WARNINGS),
     checks: await resolveChecks({
       file: values.checks ?? process.env.ARGOS_CHECKS_FILE,
       changed: values.changed,

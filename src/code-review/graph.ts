@@ -7,37 +7,42 @@ import { decisor } from "./nodes/decisor";
 import { countFindings } from "./findings";
 import { countChecks } from "./checks";
 
-/** Pré-gate: default da plataforma do máximo de warnings que ainda vai ao Clef. */
-const DEFAULT_MAX_WARNINGS = 2; // 3+ warnings → delega, sem gastar o Clef
-
 /**
- * PRÉ-GATE — roteamento determinístico e barato, antes de gastar o Clef:
- *   checagem determinística vermelha        → Erodos (o piso: nunca auto_merge)
- *   bloqueante (ou request_changes)        → Erodos (rejeita + delega o fix)
- *   approve com > maxWarnings (ex.: 3+)     → Erodos (rejeita + delega o fix)
- *   approve com 0–maxWarnings warnings      → Decisor (zona cinza; Clef decide)
+ * PRÉ-GATE — roteamento determinístico e barato:
+ *   checagem determinística vermelha        → Erodos (o piso: o parecer nunca libera)
+ *   bloqueante (ou request_changes)         → Erodos (corrige o mecânico; segura)
+ *   approve com warnings                    → Erodos (uma rodada dos warnings)
+ *   approve sem warnings                    → Decisor (só informa)
  *   comment/outros                          → fim (deixa para uma pessoa)
+ *
+ * O Decisor (o Clef) não segura o merge: um approve sem bloqueante libera, e a resposta
+ * dele vai no parecer como informação (#19, decisão do Fernando de 12/11/2026).
  *
  * Sem achados estruturados (lista vazia), as contagens são 0 e o roteamento cai
  * no antigo, só por verdict — a feature é aditiva e falha segura.
  */
-function afterArgos(state: ReviewStateT): "decisor" | "erodos" | typeof END {
+export function afterArgos(state: ReviewStateT): "decisor" | "erodos" | typeof END {
   const { blocking, warning } = countFindings(state.findings ?? []);
-  // Clampa como os limiares de probabilidade: inteiro não-negativo. Um valor cru
-  // negativo/fracionário poderia desligar o auto-merge silenciosamente.
-  const raw = Number.isFinite(state.maxWarnings) ? (state.maxWarnings as number) : DEFAULT_MAX_WARNINGS;
-  const maxWarnings = Math.max(0, Math.floor(raw));
-
-  // O piso determinístico: com uma checagem vermelha, o PR não vai ao Clef, seja qual
-  // for o parecer. O Argos pode errar; o resultado de um script, não.
+  // O piso determinístico: com uma checagem vermelha, o parecer não libera, seja qual
+  // for. O Argos pode errar; o resultado de um script, não.
   if (countChecks(state.checks ?? []).red.length > 0) return "erodos";
   if (blocking > 0 || state.verdict === "request_changes") return "erodos";
-  if (state.verdict === "approve") return warning > maxWarnings ? "erodos" : "decisor";
+  if (state.verdict === "approve") return warning > 0 ? "erodos" : "decisor";
   return END;
 }
 
 /**
- * START → router → argos → (approve|request_changes|…) → decisor|erodos|END
+ * Depois do Erodos: um commit empurrado espera a revisão do CI dele; um approve cujos
+ * warnings o Erodos não aplicou segue para o Decisor, que só informa; o resto (segurado)
+ * termina.
+ */
+export function afterErodos(state: ReviewStateT): "decisor" | typeof END {
+  if (state.fixCommit) return END;
+  return state.verdict === "approve" ? "decisor" : END;
+}
+
+/**
+ * START → router → argos → (approve|request_changes|…) → decisor|erodos|END; erodos → decisor|END
  *
  * A sequência do orquestrador do code-review: o router (por script) escolhe as lentes
  * e roda os detectores; o Argos roda as lentes e sintetiza um veredito; o runtime
@@ -56,6 +61,6 @@ export function buildGraph() {
     .addEdge("router", "argos")
     .addConditionalEdges("argos", afterArgos, ["decisor", "erodos", END])
     .addEdge("decisor", END)
-    .addEdge("erodos", END)
+    .addConditionalEdges("erodos", afterErodos, ["decisor", END])
     .compile();
 }

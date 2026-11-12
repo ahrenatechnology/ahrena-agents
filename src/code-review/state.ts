@@ -25,8 +25,6 @@ export const ReviewState = Annotation.Root({
   autoMergeMin: Annotation<number>(),
   /** Limiar do gate: prob. máxima de regressão tolerada; vazio → default. */
   regressionMax: Annotation<number>(),
-  /** Pré-gate: máximo de warnings que ainda vai ao Clef; vazio → default (2). */
-  maxWarnings: Annotation<number>(),
   /**
    * As checagens determinísticas do pipeline (CI, lint, testes), que rodaram ANTES
    * do Argos: ele lê o PR sabendo o que passou e o que quebrou, e o Decisor as pesa.
@@ -45,6 +43,8 @@ export const ReviewState = Annotation.Root({
   fix: Annotation<boolean>(),
   /** Limite de rodadas do loop correção → nova revisão; vazio → default (2). */
   maxRounds: Annotation<number>(),
+  /** Por que o Erodos não aplicou os warnings de um approve: vai no parecer, e o merge segue. */
+  fixNote: Annotation<string>(),
   /** O commit que o Erodos empurrou, quando empurrou. */
   fixCommit: Annotation<string>(),
   /** Verdict do Argos, extraído do texto da review. */

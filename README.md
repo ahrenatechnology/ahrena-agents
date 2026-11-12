@@ -153,8 +153,8 @@ secret `CLAUDE_CODE_OAUTH_TOKEN`.
 | `CLOUDFLARE_API_TOKEN` | env / Action `cloudflare-api-token` | API token da Cloudflare, escopo **Workers AI** — para o Decisor |
 | `GH_TOKEN` | no CI (automático na Action) | token do GitHub, usado pelo `gh` |
 
-> Sem as credenciais da Cloudflare o Argos ainda revisa, mas o Decisor degrada
-> para `hold_for_human` (não aprova o merge sozinho).
+> Sem as credenciais da Cloudflare o Argos ainda revisa, e o Decisor responde
+> `hold_for_human`. Desde a #19 isso é só informação: o Decisor não segura o merge.
 
 ### Parâmetros ajustáveis
 
@@ -170,21 +170,20 @@ variável de ambiente → default. Na GitHub Action, cada um é um `input`.
 | `--bedrock-model` | `BEDROCK_MODEL` | `bedrock-model` | — | id do modelo **no Bedrock** (quando `decisor-provider=bedrock`) |
 | `--auto-merge-min` | `DECISOR_AUTO_MERGE_MIN` | `auto-merge-min` | `0.85` | prob. **mínima** de `auto_merge` p/ fechar sozinho (0–1) |
 | `--regression-max` | `DECISOR_REGRESSION_MAX` | `regression-max` | `0.15` | prob. **máxima** de regressão tolerada (0–1) |
-| `--max-warnings` | `DECISOR_MAX_WARNINGS` | `max-warnings` | `2` | máx. de **warnings** que ainda vai ao Clef; acima disso o **pré-gate** delega (ex.: `2` ⇒ 3+ warnings = delega) |
 | `--checks` | `ARGOS_CHECKS_FILE` | `checks-file` | — | arquivo JSON com o resultado das **checagens determinísticas** (um array de `{name, conclusion}`, ou o `toJSON(needs)` de um workflow). Dado, vence a leitura pela API |
 | `--checks-wait` | `ARGOS_CHECKS_WAIT` | `checks-wait` | `900` no Actions, `0` fora | segundos que o Argos **espera as outras checagens** do commit terminarem antes de revisar |
 | `--checks-exclude` | `ARGOS_CHECKS_EXCLUDE` | `checks-exclude` | — | regex dos nomes de checagens a ignorar (as da própria execução do Argos já saem sozinhas) |
 
 Os dois limiares de probabilidade são **presos em [0,1]**; valor vazio ou
-inválido cai no default. O `--max-warnings` é a contagem a partir dos **achados
-estruturados** que o Argos entrega.
+inválido cai no default. Eles mudam só o que o Decisor informa no parecer: o
+merge não depende dele (#19).
 
 **Exemplos**
 
 ```bash
 # CLI: afrouxa o gate e usa o modelo rápido do Clef
 ahrena-review --pr 12 --changed "origin/main...HEAD" \
-  --clef-model clef-flash --auto-merge-min 0.80 --max-warnings 3
+  --clef-model clef-flash --auto-merge-min 0.80
 ```
 
 ```yaml
@@ -194,8 +193,7 @@ ahrena-review --pr 12 --changed "origin/main...HEAD" \
     claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-    auto-merge-min: "0.90"   # mais conservador que o default
-    max-warnings: "1"        # 2+ warnings já delega
+    auto-merge-min: "0.90"   # o Decisor informa com um corte mais conservador
 ```
 
 Forma completa da CLI:
@@ -204,7 +202,7 @@ Forma completa da CLI:
 ahrena-review --pr <n> [--changed <base>...<head>]
   [--model <id>] [--decisor-provider cloudflare|bedrock]
   [--clef-model <id>] [--bedrock-model <id>]
-  [--auto-merge-min <0–1>] [--regression-max <0–1>] [--max-warnings <n>]
+  [--auto-merge-min <0–1>] [--regression-max <0–1>]
 ```
 
 ### Provider do Decisor: Cloudflare ou Bedrock
@@ -241,7 +239,7 @@ O Argos revisa **depois** das checagens determinísticas do pipeline (testes, li
 resultado delas: o que um script já decidiu não vira opinião.
 
 ```
-checagens do CI ──► Argos (lê o PR sabendo o que passou e o que quebrou) ──► pré-gate ──► Clef
+checagens do CI ──► Argos (lê o PR sabendo o que passou e o que quebrou) ──► pré-gate ──► Erodos | Decisor
 ```
 
 - **De onde vêm.** Dentro do GitHub Actions, o runtime lê sozinho, pela API, os *check runs* e os
@@ -251,8 +249,8 @@ checagens do CI ──► Argos (lê o PR sabendo o que passou e o que quebrou) 
 - **No Argos.** Entram no prompt como fatos: uma checagem vermelha vira um achado `blocking` com o nome
   dela, o Argos não contradiz nem repete o que uma checagem decidiu, e julga os testes sabendo o que elas
   provaram.
-- **No pré-gate.** Uma checagem vermelha nunca chega ao Clef: o PR fica para uma pessoa, seja qual for o
-  parecer.
+- **No pré-gate.** Com uma checagem vermelha, o parecer nunca libera: o Erodos corrige o que é mecânico, e o
+  PR fica segurado, seja qual for o parecer.
 - **No Clef.** O dossiê leva a contagem (quantas verdes, quais vermelhas).
 - **No comentário.** Uma linha com o resultado, e cada vermelha (ou sem terminar no prazo) com o link.
 
@@ -268,7 +266,7 @@ O runtime conduz a review na ordem do orquestrador do plugin `code-review` (`ahr
 chamado pelo nome qualificado, para não carregar o `argos` do plugin `quality`):
 
 ```
-router (script) ──► Argos (lentes + síntese) ──► pré-gate ──► Decisor (Clef) ──► merge
+router (script) ──► Argos (lentes + síntese) ──► pré-gate ──► Decisor (só informa) ──► parecer
                                                      └──────► Erodos (correção) ──► commit ──► CI de novo ──► Argos
 ```
 
@@ -287,12 +285,24 @@ router (script) ──► Argos (lentes + síntese) ──► pré-gate ──�
 5. **Correção.** Com `fix: true`, o Erodos (`ahrena-engineering-quality:erodos`) aplica os achados mecânicos
    (`kind: como`) no head do PR, e o runtime grava um commit com o trailer `Ahrena-Fix-Round: N` e o empurra
    para a branch do PR. A nova revisão é a do CI desse commit: as checagens rodam de novo e o Argos revisa o que
-   o Erodos escreveu, nunca a própria edição. O trailer conta as rodadas; no limite (`max-rounds`, default 2),
-   se o head andou, num fork ou sem nada mecânico para aplicar, fica para uma pessoa.
-6. **Merge**, pelo Decisor, como antes.
+   o Erodos escreveu, nunca a própria edição. O trailer conta as rodadas. Dois caminhos chegam aqui:
+   - **um `approve` sem bloqueante, com warnings:** uma rodada só. Depois dela, ou quando não há nada mecânico,
+     o head andou, é um fork ou não há push token, o parecer segue `approve`, os warnings que sobraram ficam
+     nele (quem chama os abre como follow-ups), e a linha `**Erodos:**` do comentário diz por quê;
+   - **um bloqueante, uma checagem vermelha ou `request_changes`:** até `max-rounds` (default 2), e o parecer
+     sai `request_changes`. No limite, fica para uma pessoa.
+6. **Decisão de merge**, pelo parecer: um `approve` sem bloqueante libera, e quem chama liga o auto-merge. A
+   resposta do Decisor (o Clef) vai no comentário como informação e não segura o merge (#19). Um `fixed:` na
+   decisão quer dizer que o Erodos empurrou um commit, e a decisão é a da revisão desse commit.
 
 Para o loop fechar, o commit do Erodos precisa disparar o CI: um push com o `GITHUB_TOKEN` não dispara workflows.
-Passe em `push-token` o token de um GitHub App com escrita no conteúdo, e dê ao job `contents: write`.
+O Erodos só empurra com o `push-token`, o token de um GitHub App com escrita no conteúdo, e nunca cai para o
+`GITHUB_TOKEN`. Quem chama não deve cancelar o run em andamento quando o push é do app: com `cancel-in-progress`,
+o run que fez o commit seria cancelado.
+
+O commit e o push do Erodos rodam sem hooks e sem a configuração global do git, e nada é empurrado quando o
+`.git/config` mudou durante a correção. Nenhum agente pode escrever em `.git` nem na configuração global, e o
+Erodos não tem `git` no shell.
 
 ## Estrutura (por processo)
 
@@ -303,7 +313,7 @@ src/
 │   ├── progress.ts        # spinner
 │   └── paths.ts           # caminhos do framework
 └── code-review/           # o processo
-    ├── graph.ts           # router → argos → (decisor|erodos|fim)
+    ├── graph.ts           # router → argos → (decisor|erodos|fim); erodos → (decisor|fim)
     ├── state.ts · verdict.ts · preview.ts · agent.ts · comment.ts
     ├── routing.ts         # o router e os detectores do framework
     ├── execution.ts       # se o review pode executar, e o quê
@@ -327,8 +337,7 @@ dentro da imagem** no build — o cliente não lida com submodule.
   execução fica restrita aos comandos que o projeto declara, num PR do mesmo repositório.
 - ✅ Prévias por etapa + spinner.
 - ✅ Verdict publicado no PR como `argos[bot]`.
-- ✅ Decisor (Clef/Workers AI) no gate de merge: `approve` **e** `auto_merge`
-  (hoje `≥0.85` e regressão `≤0.15`) → auto-merge (squash). Os pesos vão no
-  comentário (calibração manual); Clef fora/sem credencial → segura p/ humano.
+- ✅ Decisor (Clef/Workers AI) só informa: um `approve` sem bloqueante libera o merge, e os pesos do Clef vão
+  no comentário (#19).
 - ✅ Erodos aplica os achados mecânicos num commit da rodada (opt-in, `fix`); o loop fecha no CI do commit novo,
-  com limite de rodadas.
+  com uma rodada para os warnings de um `approve` e `max-rounds` para um PR segurado.

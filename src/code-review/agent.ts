@@ -13,6 +13,12 @@ export const DEFAULT_MODEL = "claude-opus-4-8";
 export const ORCHESTRATOR = "ahrena-engineering-code-review:argos";
 export const FIXER = "ahrena-engineering-quality:erodos";
 
+/**
+ * O que o Erodos usa: ler e editar os arquivos do PR. Sem `git` no shell: um
+ * `git diff --output` escreveria onde quisesse, e o que mudou ele lê com Read.
+ */
+export const FIXER_TOOLS = ["Read", "Edit", "Write", "Grep", "Glob"];
+
 /** O que o Argos sempre pode usar: ler. Executar entra só pelos comandos que o projeto declarou. */
 const READ_ONLY = ["Read", "Grep", "Glob"];
 
@@ -34,6 +40,21 @@ const SECRET_FILES = [
   "Read(~/.aws/**)",
   "Read(//root/.docker/**)",
   "Read(//home/*/.docker/**)",
+];
+
+/**
+ * O que nenhum agente escreve: o `.git` do checkout (um hook ou um `url.insteadOf`
+ * plantado ali levaria o push token) e a configuração global do git.
+ */
+export const GIT_WRITES = [
+  "Edit(.git/**)",
+  "Write(.git/**)",
+  "Edit(**/.git/**)",
+  "Write(**/.git/**)",
+  "Edit(~/.gitconfig)",
+  "Write(~/.gitconfig)",
+  "Edit(~/.config/git/**)",
+  "Write(~/.config/git/**)",
 ];
 
 export function agentEnv(env: NodeJS.ProcessEnv): Record<string, string> {
@@ -76,7 +97,7 @@ export async function runAgent(opts: {
     agent: opts.agent,
     permissionMode: "dontAsk",
     allowedTools: opts.tools,
-    disallowedTools: SECRET_FILES,
+    disallowedTools: [...SECRET_FILES, ...GIT_WRITES],
     env: agentEnv(process.env),
     abortController: controller,
     maxTurns: 100,

@@ -17,7 +17,7 @@ export function renderPreview(node: string, patch: Partial<ReviewStateT>): strin
       return `✓ Argos · verdict: ${patch.verdict ?? "?"} · achados: ${blocking} bloq / ${warning} warn`;
     }
     case "erodos":
-      return `↻ Erodos · ${patch.decision ?? "aplicaria fixes"}`;
+      return `↻ Erodos · ${patch.decision ?? patch.fixNote ?? "aplicaria fixes"}`;
     case "decisor":
       return `✓ Decisor · ${patch.decision ?? "avaliado"}`;
     default:
