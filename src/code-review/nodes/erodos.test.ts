@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { erodos, outsideFindings, configDigest, gitFailure, WARNING_ROUNDS } from "./erodos";
+import { erodos, outsideFindings, configDigest, gitFailure, authEnv, WARNING_ROUNDS } from "./erodos";
 import { FIXER_TOOLS, GIT_WRITES } from "../agent";
 import type { ReviewStateT } from "../state";
 import type { Finding } from "../findings";
@@ -124,4 +124,20 @@ test("a git failure never shows the credential", () => {
   const error = Object.assign(new Error("x"), { stderr: "fatal: Authorization: Basic c2VjcmV0 refused for s3cr3t" });
   const line = gitFailure(error, "s3cr3t");
   assert.ok(!line.includes("s3cr3t") && !line.includes("c2VjcmV0"), line);
+});
+
+test("#27/AC-1: the push token is the only header left for the host, over the checkout's", () => {
+  const key = "http.https://github.com/.extraheader";
+  git("config", "--local", key, "AUTHORIZATION: basic checkout-token");
+  try {
+    const env = authEnv("push-token");
+    const run = (...args: string[]) =>
+      execFileSync("git", args, { cwd: repo, encoding: "utf8", env: { ...env, GIT_CONFIG_GLOBAL: "/dev/null" } }).trim();
+    const basic = Buffer.from("x-access-token:push-token").toString("base64");
+    // In order: the checkout's, the reset, the push token's. An empty value clears the list.
+    assert.deepEqual(run("config", "--get-all", key).split("\n"), ["AUTHORIZATION: basic checkout-token", "", `Authorization: Basic ${basic}`]);
+    assert.equal(run("config", "--get-urlmatch", "http.extraheader", "https://github.com/o/r.git"), `Authorization: Basic ${basic}`);
+  } finally {
+    git("config", "--local", "--unset-all", key);
+  }
 });
